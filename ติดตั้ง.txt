@@ -1,0 +1,17 @@
+npm i drizzle-orm mysql2 dotenv
+npm i -D drizzle-kit tsx
+
+สำหรับกรณีนี้ ชื่อ column ใน DB ไม่ได้เปลี่ยน (car_brand เหมือนเดิม) ดังนั้น push อาจไม่มีอะไรเปลี่ยน
+npx drizzle-kit push
+
+rm -rf drizzle
+จะสร้างไฟล์ migration ใหม่ในโฟลเดอร์ drizzle/  000x_xxx
+npx drizzle-kit generate --name=ชื่อการเปลี่ยนแปลง
+npx drizzle-kit check
+ถ้าต้องการ sync ตรงกับ database:  echo = 0 สำเร็จ
+npx drizzle-kit migrate
+echo $?
+
+npm install bcryptjs jose
+npm install moment --save  
+npm install react-hook-form zod @hookform/resolvers
