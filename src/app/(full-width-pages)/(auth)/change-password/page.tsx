@@ -6,7 +6,6 @@ import {
   Check,
   Eye,
   EyeOff,
-  KeyRound,
   LockKeyhole,
   ShieldCheck,
   Sparkles,
@@ -187,12 +186,11 @@ export default function ChangePasswordPage() {
       const statusLevel = response.data.user?.statusLevel;
 
       if (statusLevel === 'user') {
-        router.replace('/bookingCar');
-      } else {
-        router.replace('/dashboard');
+        router.replace('/calendar');
+        return;
       }
 
-      router.refresh();
+      router.replace('/dashboard');
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         const message = error.response?.data?.message;

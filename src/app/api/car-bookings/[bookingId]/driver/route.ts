@@ -4,6 +4,7 @@ import { and, eq, ne, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { car_booking } from '@/db/schema/car_booking';
 import { users } from '@/db/schema';
+import { AuthError, requireAdminOrMember } from '@/lib/auth';
 
 type RouteContext = {
   params: Promise<{
@@ -17,6 +18,17 @@ type UpdateDriverBody = {
 
 export async function PATCH(request: Request, context: RouteContext) {
   try {
+    // =====================================================
+    // AUTH
+    // admin / member เท่านั้น
+    // =====================================================
+
+    await requireAdminOrMember(request);
+
+    // =====================================================
+    // BOOKING ID
+    // =====================================================
+
     const { bookingId } = await context.params;
 
     const id = Number(bookingId);
@@ -27,15 +39,39 @@ export async function PATCH(request: Request, context: RouteContext) {
           success: false,
           message: 'รหัสการจองไม่ถูกต้อง',
         },
-        { status: 400 },
+        {
+          status: 400,
+        },
       );
     }
 
-    const body = (await request.json()) as UpdateDriverBody;
+    // =====================================================
+    // BODY
+    // =====================================================
+
+    let body: UpdateDriverBody;
+
+    try {
+      body = (await request.json()) as UpdateDriverBody;
+    } catch {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'รูปแบบข้อมูลไม่ถูกต้อง',
+        },
+        {
+          status: 400,
+        },
+      );
+    }
 
     const cUCode = typeof body.cUCode === 'string' ? body.cUCode.trim() : '';
 
-    const bookingResult = await db
+    // =====================================================
+    // CURRENT BOOKING
+    // =====================================================
+
+    const [currentBooking] = await db
       .select({
         bookingId: car_booking.bookingId,
         cUCode: car_booking.cUCode,
@@ -52,19 +88,22 @@ export async function PATCH(request: Request, context: RouteContext) {
       .where(eq(car_booking.bookingId, id))
       .limit(1);
 
-    if (bookingResult.length === 0) {
+    if (!currentBooking) {
       return NextResponse.json(
         {
           success: false,
           message: 'ไม่พบรายการจองรถ',
         },
-        { status: 404 },
+        {
+          status: 404,
+        },
       );
     }
 
-    const currentBooking = bookingResult[0];
+    // =====================================================
+    // CANCEL DRIVER
+    // =====================================================
 
-    // ยกเลิกคนขับ
     if (!cUCode) {
       await db
         .update(car_booking)
@@ -76,6 +115,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json({
         success: true,
         message: 'ยกเลิกคนขับรถเรียบร้อยแล้ว',
+
         data: {
           bookingId: id,
           cUCode: '',
@@ -84,8 +124,11 @@ export async function PATCH(request: Request, context: RouteContext) {
       });
     }
 
-    // ตรวจคนขับ
-    const driverResult = await db
+    // =====================================================
+    // FIND DRIVER
+    // =====================================================
+
+    const [selectedDriver] = await db
       .select({
         id: users.id,
         userCode: users.user_code,
@@ -100,26 +143,72 @@ export async function PATCH(request: Request, context: RouteContext) {
       .where(
         and(
           eq(users.user_code, cUCode),
+
+          // system_id = 2 = คนขับรถ
           eq(users.system_id, 2),
+
+          // ต้องเป็นบัญชีที่เปิดใช้งาน
           eq(users.status, 'active'),
         ),
       )
       .limit(1);
 
-    if (driverResult.length === 0) {
+    if (!selectedDriver) {
       return NextResponse.json(
         {
           success: false,
           message: 'ไม่พบข้อมูลคนขับรถ หรือบัญชีไม่ได้เปิดใช้งาน',
         },
-        { status: 404 },
+        {
+          status: 404,
+        },
       );
     }
 
-    const selectedDriver = driverResult[0];
+    // user_code ใน users เป็น nullable
+    // ต้องตรวจให้เป็น string ก่อนใช้ต่อ
+    if (!selectedDriver.userCode) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'ข้อมูลคนขับรถไม่มีรหัสผู้ใช้งาน',
+        },
+        {
+          status: 400,
+        },
+      );
+    }
 
-    // ตรวจเวลาชน
-    const conflictResult = await db
+    const driverUserCode = selectedDriver.userCode;
+
+    const driverName =
+      [selectedDriver.prefix, selectedDriver.firstName, selectedDriver.lastName]
+        .filter(
+          (value): value is string =>
+            typeof value === 'string' && value.trim().length > 0,
+        )
+        .join(' ') || driverUserCode;
+
+    // =====================================================
+    // CHECK DRIVER TIME CONFLICT
+    // =====================================================
+
+    /*
+     * overlap:
+     *
+     * existingStart < currentEnd
+     * &&
+     * existingEnd > currentStart
+     *
+     * เช่น
+     *
+     * Booking A: 08:00 - 10:00
+     * Booking B: 10:00 - 12:00
+     *
+     * ไม่ถือว่าชนกัน
+     */
+
+    const [conflict] = await db
       .select({
         bookingId: car_booking.bookingId,
 
@@ -137,34 +226,33 @@ export async function PATCH(request: Request, context: RouteContext) {
       .from(car_booking)
       .where(
         and(
-          eq(car_booking.cUCode, selectedDriver.userCode),
+          // คนขับคนเดียวกัน
+          eq(car_booking.cUCode, driverUserCode),
 
-          // ไม่เทียบกับ booking ตัวเอง
+          // ไม่ตรวจ booking ปัจจุบันกับตัวเอง
           ne(car_booking.bookingId, id),
 
-          // cancelled ไม่นับ
+          // ยกเลิกแล้วไม่นับ
           ne(car_booking.status, 'cancelled'),
 
-          // booking เดิมเริ่มก่อน booking ใหม่จบ
+          // existingStart < currentEnd
           sql`
             TIMESTAMP(
               ${car_booking.startDate},
               ${car_booking.startTime}
-            )
-            <
+            ) <
             TIMESTAMP(
               ${currentBooking.endDate},
               ${currentBooking.endTime}
             )
           `,
 
-          // booking เดิมจบหลัง booking ใหม่เริ่ม
+          // existingEnd > currentStart
           sql`
             TIMESTAMP(
               ${car_booking.endDate},
               ${car_booking.endTime}
-            )
-            >
+            ) >
             TIMESTAMP(
               ${currentBooking.startDate},
               ${currentBooking.startTime}
@@ -174,20 +262,15 @@ export async function PATCH(request: Request, context: RouteContext) {
       )
       .limit(1);
 
-    if (conflictResult.length > 0) {
-      const conflict = conflictResult[0];
+    // =====================================================
+    // DRIVER CONFLICT
+    // =====================================================
 
-      const driverName = [
-        selectedDriver.prefix,
-        selectedDriver.firstName,
-        selectedDriver.lastName,
-      ]
-        .filter(Boolean)
-        .join(' ');
-
+    if (conflict) {
       return NextResponse.json(
         {
           success: false,
+
           code: 'DRIVER_TIME_CONFLICT',
 
           message: `${driverName} มีรายการเดินทางในช่วงเวลานี้แล้ว`,
@@ -205,43 +288,66 @@ export async function PATCH(request: Request, context: RouteContext) {
             destination: conflict.description,
           },
         },
-        { status: 409 },
+        {
+          status: 409,
+        },
       );
     }
 
-    // บันทึกคนขับ
+    // =====================================================
+    // UPDATE DRIVER
+    // =====================================================
+
     await db
       .update(car_booking)
       .set({
-        cUCode: selectedDriver.userCode,
+        cUCode: driverUserCode,
       })
       .where(eq(car_booking.bookingId, id));
 
-    const driverName = [
-      selectedDriver.prefix,
-      selectedDriver.firstName,
-      selectedDriver.lastName,
-    ]
-      .filter(Boolean)
-      .join(' ');
+    // =====================================================
+    // SUCCESS
+    // =====================================================
 
     return NextResponse.json({
       success: true,
+
       message: 'บันทึกคนขับรถเรียบร้อยแล้ว',
 
       data: {
         bookingId: id,
-        cUCode: selectedDriver.userCode,
+
+        cUCode: driverUserCode,
 
         driver: {
           id: selectedDriver.id,
-          userCode: selectedDriver.userCode,
+          userCode: driverUserCode,
           name: driverName,
           phone: selectedDriver.phone,
         },
       },
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    // =====================================================
+    // AUTH ERROR
+    // =====================================================
+
+    if (error instanceof AuthError) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.message,
+        },
+        {
+          status: error.status,
+        },
+      );
+    }
+
+    // =====================================================
+    // UNKNOWN ERROR
+    // =====================================================
+
     console.error('PATCH /api/car-bookings/[bookingId]/driver error:', error);
 
     return NextResponse.json(
@@ -249,7 +355,9 @@ export async function PATCH(request: Request, context: RouteContext) {
         success: false,
         message: 'ไม่สามารถบันทึกคนขับรถได้',
       },
-      { status: 500 },
+      {
+        status: 500,
+      },
     );
   }
 }

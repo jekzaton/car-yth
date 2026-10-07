@@ -1,14 +1,10 @@
 'use client';
 
 import {
-  CalendarDays,
-  CarFront,
   ChartPie,
   CircleDollarSign,
   Droplets,
   Loader2,
-  RefreshCw,
-  Search,
   TrendingUp,
   WalletCards,
   Wrench,
@@ -16,8 +12,8 @@ import {
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import axios from 'axios';
 import DashboardHeader from './DashboardHeader';
+import api from '@/lib/axios';
 
 // ============================================================
 // TYPES
@@ -138,7 +134,7 @@ export default function Dashboard() {
       setIsLoading(true);
       setError(null);
 
-      const response = await axios.get<DashboardResponse>(
+      const response = await api.get<DashboardResponse>(
         '/api/dashboard/car-expenses',
         {
           params: {

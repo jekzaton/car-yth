@@ -1,26 +1,38 @@
 'use client';
 
-import { useState } from 'react';
-import axios from 'axios';
-import { ArrowLeft, Save, Upload } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  Save,
+  Search,
+  Upload,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
+import api from '@/lib/axios';
+import Image from 'next/image';
+import axios from 'axios';
 
 type CarFormData = {
   carCode: string;
-  carName: string;
-  carBrand: string;
+  carBrandSub: string;
+  carBrandId: string;
   licensePlate: string;
   carImage?: string;
   status: 'active' | 'inactive';
 };
-
+type CarBrandItem = {
+  id: number;
+  carBrandName: string;
+};
 export default function CreateCar() {
   const router = useRouter();
   const [form, setForm] = useState<CarFormData>({
     carCode: '',
-    carName: '',
-    carBrand: '',
+    carBrandId: '',
+    carBrandSub: '',
     licensePlate: '',
     carImage: '',
     status: 'active',
@@ -32,6 +44,37 @@ export default function CreateCar() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [mainImageIndex, setMainImageIndex] = useState<number>(0);
 
+  const [carBrands, setCarBrands] = useState<CarBrandItem[]>([]);
+  const [brandSearch, setBrandSearch] = useState('');
+  const [brandOpen, setBrandOpen] = useState(false);
+  const [isLoadingBrands, setIsLoadingBrands] = useState(false);
+
+  useEffect(() => {
+    const fetchCarBrands = async () => {
+      try {
+        setIsLoadingBrands(true);
+
+        const response = await api.get('/api/cars/car-brand');
+
+        const data = Array.isArray(response.data?.data)
+          ? response.data.data
+          : [];
+
+        setCarBrands(data);
+      } catch (error) {
+        console.error('Fetch car brands error:', error);
+
+        toast.error('ไม่สามารถโหลดข้อมูลยี่ห้อรถได้', {
+          position: 'top-right',
+        });
+      } finally {
+        setIsLoadingBrands(false);
+      }
+    };
+
+    void fetchCarBrands();
+  }, []);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
@@ -40,54 +83,135 @@ export default function CreateCar() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!form.carCode.trim()) {
+      toast.warning('กรุณาระบุรหัสรถ', {
+        position: 'top-right',
+      });
+      return;
+    }
+
+    if (!form.carBrandSub.trim()) {
+      toast.warning('กรุณาระบุรุ่นรถ', {
+        position: 'top-right',
+      });
+      return;
+    }
+
+    if (!form.carBrandId) {
+      toast.warning('กรุณาเลือกยี่ห้อรถยนต์', {
+        position: 'top-right',
+      });
+      return;
+    }
+
+    if (!form.licensePlate.trim()) {
+      toast.warning('กรุณาระบุทะเบียนรถ', {
+        position: 'top-right',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const formData = new FormData();
-      formData.append('carCode', form.carCode);
-      formData.append('carName', form.carName);
-      formData.append('carBrand', form.carBrand);
-      formData.append('licensePlate', form.licensePlate);
+
+      formData.append('carCode', form.carCode.trim());
+      formData.append('carBrandSub', form.carBrandSub.trim());
+      formData.append('carBrandId', form.carBrandId);
+      formData.append('licensePlate', form.licensePlate.trim());
       formData.append('status', form.status);
-      formData.append('mainImageIndex', mainImageIndex.toString());
+      formData.append('mainImageIndex', String(mainImageIndex));
 
-      selectedFiles.forEach((file) => formData.append('carImages', file));
-
-      const res = await axios.post('/api/cars', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      selectedFiles.forEach((file) => {
+        formData.append('carImages', file);
       });
 
-      if (res.data.success) {
-        toast.success('บันทึกข้อมูลสำเร็จ!', { position: 'top-right' });
+      const res = await api.post('/api/cars', formData);
 
-        // เคลียร์ form
+      if (res.data.success) {
+        toast.success('บันทึกข้อมูลสำเร็จ!', {
+          position: 'top-right',
+        });
+
         setForm({
           carCode: '',
-          carName: '',
-          carBrand: '',
+          carBrandSub: '',
+          carBrandId: '',
           licensePlate: '',
           carImage: '',
           status: 'active',
         });
+
+        setBrandSearch('');
+        setBrandOpen(false);
         setSelectedFiles([]);
         setImagePreviews([]);
+        setMainImageIndex(0);
 
-        // redirect ไป /cars
         router.push('/cars');
-      } else {
-        toast.error(res.data.message || 'เกิดข้อผิดพลาด', {
-          position: 'top-right',
-        });
+
+        return;
       }
-    } catch (err: any) {
-      toast.error(
-        'เกิดข้อผิดพลาด: ' + (err.response?.data?.message || err.message),
-        { position: 'top-right' },
-      );
+
+      toast.error(res.data.message || 'เกิดข้อผิดพลาด', {
+        position: 'top-right',
+      });
+    } catch (err: unknown) {
+      console.error('Create car error:', err);
+
+      if (axios.isAxiosError<{ message?: string }>(err)) {
+        toast.error(
+          err.response?.data?.message ||
+            err.message ||
+            'ไม่สามารถบันทึกข้อมูลรถยนต์ได้',
+          {
+            position: 'top-right',
+          },
+        );
+
+        return;
+      }
+
+      toast.error('เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ', {
+        position: 'top-right',
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const getImageSrc = (src: string) => {
+    if (
+      src.startsWith('http://') ||
+      src.startsWith('https://') ||
+      src.startsWith('blob:') ||
+      src.startsWith('data:')
+    ) {
+      return src;
+    }
+
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
+    if (basePath && src.startsWith(`${basePath}/`)) {
+      return src;
+    }
+
+    return `${basePath}${src.startsWith('/') ? src : `/${src}`}`;
+  };
+
+  const filteredCarBrands = useMemo(() => {
+    const keyword = brandSearch.trim().toLowerCase();
+
+    if (!keyword) {
+      return carBrands;
+    }
+
+    return carBrands.filter((brand) =>
+      brand.carBrandName.toLowerCase().includes(keyword),
+    );
+  }, [carBrands, brandSearch]);
 
   return (
     <div className="dark:bg-white/3 mx-auto max-w-2xl space-y-3 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/5">
@@ -136,33 +260,100 @@ export default function CreateCar() {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              ชื่อรถ
+          <div className="relative">
+            <label className="mb-1.5 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+              ยี่ห้อรถ
+              <span className="ml-1 text-red-500">*</span>
             </label>
-            <input
-              type="text"
-              name="carName"
-              value={form.carName}
-              onChange={handleChange}
-              placeholder="รถกระบะส่งของ"
-              required
-              className="focus:border-brand-500 focus:ring-brand-500 dark:border-white/8 dark:bg-white/3 mt-1 block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 placeholder-gray-400 shadow-sm focus:ring-1 dark:text-white/90 dark:placeholder:text-gray-500"
-            />
+
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+
+              <input
+                type="text"
+                value={brandSearch}
+                onFocus={() => setBrandOpen(true)}
+                onChange={(event) => {
+                  setBrandSearch(event.target.value);
+
+                  setForm((prev) => ({
+                    ...prev,
+                    carBrandId: '',
+                  }));
+
+                  setBrandOpen(true);
+                }}
+                placeholder="พิมพ์ค้นหายี่ห้อรถ..."
+                autoComplete="off"
+                className="h-11 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-10 text-sm font-medium text-gray-800 shadow-sm outline-none transition placeholder:text-gray-400 hover:border-blue-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-gray-500"
+              />
+
+              <ChevronDown
+                className={`pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 transition-transform ${
+                  brandOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </div>
+
+            {brandOpen && (
+              <div className="absolute z-50 mt-2 max-h-64 w-full overflow-y-auto rounded-2xl border border-gray-200 bg-white p-1.5 shadow-xl dark:border-white/10 dark:bg-gray-900">
+                {isLoadingBrands ? (
+                  <div className="px-3 py-5 text-center text-sm text-gray-500 dark:text-gray-400">
+                    กำลังโหลดข้อมูล...
+                  </div>
+                ) : filteredCarBrands.length > 0 ? (
+                  filteredCarBrands.map((brand) => {
+                    const selected = form.carBrandId === String(brand.id);
+
+                    return (
+                      <button
+                        key={brand.id}
+                        type="button"
+                        onClick={() => {
+                          setForm((prev) => ({
+                            ...prev,
+                            carBrandId: String(brand.id),
+                          }));
+
+                          setBrandSearch(brand.carBrandName);
+                          setBrandOpen(false);
+                        }}
+                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition ${
+                          selected
+                            ? 'bg-blue-50 font-semibold text-blue-700 dark:bg-blue-500/10 dark:text-blue-300'
+                            : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5'
+                        } `}
+                      >
+                        <span>{brand.carBrandName}</span>
+
+                        {selected && (
+                          <Check className="h-4 w-4 text-blue-500" />
+                        )}
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="px-3 py-5 text-center text-sm text-gray-500 dark:text-gray-400">
+                    ไม่พบยี่ห้อรถ
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              ยี่ห้อ / รุ่น
+              รุ่นรถ / รุ่นย่อย
             </label>
+
             <input
               type="text"
-              name="carBrand"
-              value={form.carBrand}
+              name="carBrandSub"
+              value={form.carBrandSub}
               onChange={handleChange}
-              placeholder="Isuzu D-Max"
+              placeholder="เช่น HR-V e:HEV E"
               required
-              className="focus:border-brand-500 focus:ring-brand-500 dark:border-white/8 dark:bg-white/3 mt-1 block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 placeholder-gray-400 shadow-sm focus:ring-1 dark:text-white/90 dark:placeholder:text-gray-500"
+              className="focus:border-brand-500 focus:ring-brand-500 mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 shadow-sm outline-none focus:ring-1 dark:border-white/10 dark:bg-white/5 dark:text-white"
             />
           </div>
 
@@ -244,12 +435,14 @@ export default function CreateCar() {
                         : 'border-gray-200 dark:border-white/10'
                     } `}
                   >
-                    <img
-                      src={src}
+                    <Image
+                      src={getImageSrc(src)}
                       alt={`preview-${index}`}
-                      className="h-28 w-full object-contain"
+                      width={300}
+                      height={112}
+                      unoptimized
+                      className="h-auto w-full object-contain"
                     />
-
                     {/* Badge รูปหลัก */}
                     {mainImageIndex === index && (
                       <span className="absolute left-2 top-2 rounded-full bg-blue-500 px-2 py-1 text-xs font-semibold text-white shadow">

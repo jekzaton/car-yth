@@ -28,154 +28,148 @@ export default function DeleteCarOilModal({
 }: DeleteCarOilModalProps) {
   if (!isOpen || !item) return null;
 
-  const carTitle = [item.carBrand, item.carName].filter(Boolean).join(' ');
+  const carTitle =
+    [item.carBrand, item.carBrandSub].filter(Boolean).join(' ') || item.carCode;
 
   return (
     <div
-      className="z-999999 fixed inset-0 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+      className="z-999999 fixed inset-0 flex items-center justify-center bg-black/45 p-4 backdrop-blur-[2px]"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !isDeleting) {
           onClose();
         }
       }}
     >
-      <div className="border-border bg-card text-card-foreground relative w-full max-w-md overflow-hidden rounded-3xl border shadow-2xl">
-        {/* GLOW */}
-        <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-red-500/10 blur-3xl" />
-
-        <div className="relative p-5 sm:p-6">
-          {/* CLOSE */}
+      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900">
+        {/* HEADER */}
+        <div className="bg-linear-to-r relative border-b border-gray-100 from-orange-50/80 via-white to-red-50/60 px-5 py-5 dark:border-gray-800 dark:from-orange-500/10 dark:via-gray-900 dark:to-red-500/10">
           <button
             type="button"
             onClick={onClose}
             disabled={isDeleting}
-            className="border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl border transition disabled:cursor-not-allowed disabled:opacity-50"
+            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl text-gray-400 transition hover:bg-white hover:text-gray-700 disabled:pointer-events-none disabled:opacity-50 dark:hover:bg-white/10 dark:hover:text-white"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </button>
 
-          {/* ICON */}
-          <div className="flex justify-center">
-            <div className="relative">
+          <div className="flex flex-col items-center text-center">
+            <div className="relative mb-3">
               <div className="absolute inset-0 rounded-full bg-red-500/20 blur-xl" />
 
-              <div className="h-18 w-18 relative flex items-center justify-center rounded-full bg-red-500/10 ring-8 ring-red-500/5">
-                <div
-                  className="flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg"
-                  style={{
-                    background:
-                      'linear-gradient(135deg, rgb(249 115 22), rgb(239 68 68))',
-                    boxShadow: '0 8px 20px rgba(239,68,68,0.22)',
-                  }}
-                >
-                  <Trash2 size={23} strokeWidth={2.3} stroke="#ffffff" />
-                </div>
+              <div className="bg-linear-to-br relative flex h-14 w-14 items-center justify-center rounded-2xl from-orange-500 to-red-500 text-white shadow-lg shadow-red-500/20">
+                <Trash2 className="h-6 w-6" />
               </div>
             </div>
-          </div>
 
-          {/* TITLE */}
-          <div className="mt-6 text-center">
-            <h2 className="text-foreground text-lg font-bold">
-              ยืนยันการลบข้อมูล?
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+              ยืนยันการลบข้อมูล
             </h2>
 
-            <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-6">
-              คุณต้องการลบข้อมูลการเติมน้ำมันรายการนี้ใช่หรือไม่?
+            <p className="mt-1 max-w-sm text-xs leading-5 text-gray-500 dark:text-gray-400">
+              ตรวจสอบข้อมูลการเติมน้ำมันก่อนยืนยันการลบ
             </p>
           </div>
+        </div>
 
-          {/* CAR INFO */}
-          <div className="mt-5 overflow-hidden rounded-2xl border border-orange-500/15 bg-orange-500/5">
-            <div className="flex items-start gap-3 p-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500/10 text-orange-500">
-                <CarFront className="h-5 w-5" />
-              </div>
+        {/* CONTENT */}
+        <div className="p-5">
+          {/* CAR */}
+          <div className="dark:bg-white/3 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50/60 dark:border-gray-800">
+            <div className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-300">
+                  <CarFront className="h-5 w-5" />
+                </div>
 
-              <div className="min-w-0 flex-1">
-                <p className="text-muted-foreground text-[11px] font-medium">
-                  รถยนต์
-                </p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-semibold text-gray-400">
+                    รถยนต์
+                  </p>
 
-                <p className="text-foreground mt-0.5 truncate text-sm font-bold">
-                  {carTitle || item.carCode}
-                </p>
+                  <p
+                    className="mt-1 truncate text-sm font-bold text-gray-900 dark:text-white"
+                    title={carTitle}
+                  >
+                    {carTitle}
+                  </p>
 
-                <div className="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-                  <span>รหัส {item.carCode}</span>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {item.carCode && (
+                      <span className="rounded-lg bg-orange-50 px-2.5 py-1 text-[11px] font-bold text-orange-700 dark:bg-orange-500/10 dark:text-orange-300">
+                        {item.carCode}
+                      </span>
+                    )}
 
-                  {item.licensePlate && (
-                    <span>ทะเบียน {item.licensePlate}</span>
-                  )}
+                    {item.licensePlate && (
+                      <span className="rounded-lg bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 shadow-sm dark:bg-white/10 dark:text-gray-300">
+                        ทะเบียน {item.licensePlate}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* OIL */}
-            <div className="border-t border-orange-500/10 px-4 py-3">
-              <div className="flex items-center gap-2 text-xs">
-                <Fuel className="h-4 w-4 text-orange-500" />
+            <div className="border-t border-gray-100 px-4 py-3 dark:border-gray-800">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300">
+                  <Fuel className="h-4 w-4" />
+                </div>
 
-                <span className="text-muted-foreground">น้ำมัน</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-semibold text-gray-400">
+                    น้ำมัน
+                  </p>
 
-                <span className="text-foreground ml-auto font-semibold">
-                  {item.oilName || '-'}
-                </span>
+                  <p className="mt-0.5 truncate text-sm font-semibold text-gray-800 dark:text-gray-200">
+                    {item.oilName || '-'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
           {/* WARNING */}
-          <div className="mt-4 flex items-start gap-3 rounded-xl border border-red-500/15 bg-red-500/5 p-3">
+          <div className="mt-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 dark:border-red-500/20 dark:bg-red-500/10">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
 
-            <p className="text-[11px] leading-5 text-red-600 dark:text-red-400">
+            <p className="text-xs leading-5 text-red-700 dark:text-red-300">
               เมื่อลบข้อมูลแล้วจะไม่สามารถกู้คืนรายการนี้ได้
               กรุณาตรวจสอบข้อมูลก่อนยืนยัน
             </p>
           </div>
+        </div>
 
-          {/* BUTTONS */}
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isDeleting}
-              className="border-border bg-background text-foreground hover:bg-accent inline-flex h-11 items-center justify-center rounded-xl border px-4 text-sm font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              ยกเลิก
-            </button>
+        {/* FOOTER */}
+        <div className="dark:bg-white/2 flex gap-2 border-t border-gray-100 bg-gray-50/50 px-5 py-4 dark:border-gray-800">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isDeleting}
+            className="h-10 flex-1 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+          >
+            ยกเลิก
+          </button>
 
-            <button
-              type="button"
-              onClick={onConfirm}
-              disabled={isDeleting}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-              style={{
-                background:
-                  'linear-gradient(90deg, rgb(249 115 22), rgb(239 68 68))',
-                boxShadow: '0 8px 20px rgba(239,68,68,0.18)',
-              }}
-            >
-              {isDeleting ? (
-                <>
-                  <LoaderCircle
-                    size={17}
-                    stroke="#ffffff"
-                    className="animate-spin"
-                  />
-
-                  <span className="text-white">กำลังลบ...</span>
-                </>
-              ) : (
-                <>
-                  <Trash2 size={17} strokeWidth={2.3} stroke="#ffffff" />
-
-                  <span className="text-white">ยืนยันการลบ</span>
-                </>
-              )}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="bg-linear-to-r inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl from-orange-500 to-red-500 px-4 text-sm font-bold text-white shadow-md shadow-red-500/20 transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+          >
+            {isDeleting ? (
+              <>
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+                กำลังลบ...
+              </>
+            ) : (
+              <>
+                <Trash2 className="h-4 w-4" />
+                ยืนยันการลบ
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>

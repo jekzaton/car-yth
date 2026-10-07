@@ -3,10 +3,8 @@
 import axios from 'axios';
 import {
   ChevronDown,
-  CircleUserRound,
   Loader2,
   LogOut,
-  Settings,
   ShieldCheck,
   UserRound,
 } from 'lucide-react';
@@ -168,7 +166,7 @@ export default function UserDropdown() {
             <Image
               width={40}
               height={40}
-              src="/images/user/owner.jpg"
+              src={`${process.env.NEXT_PUBLIC_BASE_PATH}/images/user/owner.jpg`}
               alt={fullName || 'ผู้ใช้งาน'}
               className="h-full w-full object-cover"
             />
@@ -228,7 +226,7 @@ export default function UserDropdown() {
                 <Image
                   width={48}
                   height={48}
-                  src="/images/user/owner.jpg"
+                  src={`${process.env.NEXT_PUBLIC_BASE_PATH}/images/user/owner.jpg`}
                   alt={fullName || 'ผู้ใช้งาน'}
                   className="h-full w-full object-cover"
                 />

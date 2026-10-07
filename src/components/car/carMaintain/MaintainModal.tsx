@@ -8,7 +8,6 @@ import {
   LoaderCircle,
   UserRound,
   Wallet,
-  WalletCards,
   Wrench,
   X,
 } from 'lucide-react';
@@ -16,13 +15,13 @@ import { toast } from 'react-toastify';
 
 import type { CarMaintainItem } from '@/types/carMaintainType';
 import api from '@/lib/axios';
-
-type CarItem = {
-  carCode: string;
-  carName: string;
-  carBrand?: string | null;
-  licensePlate?: string | null;
-};
+import { CarItem } from '@/types/carType';
+import {
+  getDatePart,
+  getTimePart,
+  mergeDateTime,
+  timeOptions,
+} from '@/utils/dateTime';
 
 type UserItem = {
   userCode: string;
@@ -101,6 +100,19 @@ export default function MaintainModal({
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+
+  const filteredUsers = users.filter((user) => {
+    const keyword = userSearch.trim().toLowerCase();
+
+    if (!keyword) return true;
+
+    return (
+      user.fullName.toLowerCase().includes(keyword) ||
+      user.userCode.toLowerCase().includes(keyword)
+    );
+  });
 
   const loadOptions = useCallback(async () => {
     try {
@@ -152,6 +164,18 @@ export default function MaintainModal({
   }, []);
 
   useEffect(() => {
+    if (!editingItem || users.length === 0) return;
+
+    const selectedUser = users.find(
+      (user) => user.userCode === editingItem.userCode,
+    );
+
+    if (selectedUser) {
+      setUserSearch(`${selectedUser.fullName} (${selectedUser.userCode})`);
+    }
+  }, [editingItem, users]);
+
+  useEffect(() => {
     if (!isOpen) return;
 
     void loadOptions();
@@ -173,6 +197,7 @@ export default function MaintainModal({
     }
 
     setForm(EMPTY_FORM);
+    setUserSearch('');
   }, [isOpen, editingItem, loadOptions]);
 
   // ESC
@@ -281,8 +306,6 @@ export default function MaintainModal({
     return null;
   }
 
-  console.log('tgarg', cars);
-
   return (
     <div className="z-99999 fixed inset-0 flex items-center justify-center p-4">
       {/* BACKDROP */}
@@ -297,35 +320,36 @@ export default function MaintainModal({
 
       {/* MODAL */}
 
-      <div className="border-border bg-card text-card-foreground relative z-10 w-full max-w-2xl overflow-hidden rounded-3xl border shadow-2xl">
+      <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-900">
         {/* HEADER */}
+        <div className="bg-linear-to-r relative overflow-hidden border-b border-gray-100 from-amber-50/80 via-white to-orange-50/60 px-5 py-4 dark:border-gray-800 dark:from-amber-500/10 dark:via-gray-900 dark:to-orange-500/10">
+          <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-orange-400/10 blur-3xl" />
 
-        <div className="border-border relative overflow-hidden border-b px-5 py-5 sm:px-6">
-          <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-amber-500/15 blur-3xl" />
-
-          <div className="relative flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-md"
-                style={{
-                  background:
-                    'linear-gradient(135deg, rgb(245 158 11), rgb(249 115 22), rgb(244 63 94))',
-                }}
-              >
-                <Wrench
-                  className="h-6 w-6"
-                  stroke="#ffffff"
-                  strokeWidth={2.3}
-                />
+          <div className="relative flex items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="bg-linear-to-br flex h-10 w-10 shrink-0 items-center justify-center rounded-xl from-amber-500 to-orange-500 text-white shadow-sm shadow-orange-500/20">
+                <Wrench className="h-5 w-5" />
               </div>
 
-              <div>
-                <h2 className="text-foreground text-lg font-bold">
-                  {isEdit ? 'แก้ไขข้อมูลซ่อมบำรุง' : 'เพิ่มข้อมูลซ่อมบำรุง'}
-                </h2>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                    {isEdit ? 'แก้ไขข้อมูลซ่อมบำรุง' : 'เพิ่มข้อมูลซ่อมบำรุง'}
+                  </h2>
 
-                <p className="text-muted-foreground mt-0.5 text-sm">
-                  บันทึกประวัติการซ่อมและค่าใช้จ่ายรถยนต์
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                      isEdit
+                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300'
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
+                    }`}
+                  >
+                    {isEdit ? 'แก้ไขข้อมูล' : 'รายการใหม่'}
+                  </span>
+                </div>
+
+                <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+                  บันทึกประวัติการซ่อมบำรุงและค่าใช้จ่ายของรถยนต์
                 </p>
               </div>
             </div>
@@ -334,7 +358,7 @@ export default function MaintainModal({
               type="button"
               onClick={onClose}
               disabled={isSaving}
-              className="text-muted-foreground hover:bg-muted hover:text-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition disabled:opacity-50"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 dark:hover:bg-white/10 dark:hover:text-white"
             >
               <X className="h-5 w-5" />
             </button>
@@ -370,9 +394,10 @@ export default function MaintainModal({
                 {cars.map((car) => (
                   <option key={car.carCode} value={car.carCode}>
                     {[
-                      car.carName,
-                      car.carBrand,
+                      [car.carBrand, car.carBrandSub].filter(Boolean).join(' '),
+
                       car.licensePlate ? `ทะเบียน ${car.licensePlate}` : null,
+
                       `(${car.carCode})`,
                     ]
                       .filter(Boolean)
@@ -389,22 +414,109 @@ export default function MaintainModal({
               icon={<UserRound className="h-4 w-4" />}
               required
             >
-              <select
-                value={form.userCode}
-                onChange={(event) =>
-                  updateField('userCode', event.target.value)
-                }
-                disabled={isLoadingOptions || isSaving}
-                className={inputClass}
-              >
-                <option value="">-- เลือกผู้ดำเนินการ --</option>
+              <div className="relative">
+                {/* SEARCH INPUT */}
+                <div className="relative">
+                  <UserRound className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 
-                {users.map((user) => (
-                  <option key={user.userCode} value={user.userCode}>
-                    {user.fullName} ({user.userCode})
-                  </option>
-                ))}
-              </select>
+                  <input
+                    type="text"
+                    value={userSearch}
+                    onChange={(event) => {
+                      setUserSearch(event.target.value);
+                      setShowUserDropdown(true);
+
+                      // ถ้าพิมพ์ใหม่ ให้ล้าง user เดิม
+                      updateField('userCode', '');
+                    }}
+                    onFocus={() => setShowUserDropdown(true)}
+                    disabled={isLoadingOptions || isSaving}
+                    placeholder="ค้นหาชื่อ หรือรหัสผู้ดำเนินการ..."
+                    autoComplete="off"
+                    className={`${inputClass} pl-10 pr-10`}
+                  />
+
+                  {userSearch && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserSearch('');
+                        updateField('userCode', '');
+                        setShowUserDropdown(true);
+                      }}
+                      className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* DROPDOWN */}
+                {showUserDropdown && !isLoadingOptions && (
+                  <div className="absolute z-50 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-900">
+                    {filteredUsers.length === 0 ? (
+                      <div className="px-4 py-6 text-center">
+                        <UserRound className="mx-auto h-6 w-6 text-gray-300" />
+
+                        <p className="mt-2 text-xs text-gray-400">
+                          ไม่พบผู้ดำเนินการ
+                        </p>
+                      </div>
+                    ) : (
+                      filteredUsers.map((user) => {
+                        const selected = form.userCode === user.userCode;
+
+                        return (
+                          <button
+                            key={user.userCode}
+                            type="button"
+                            onClick={() => {
+                              updateField('userCode', user.userCode);
+
+                              setUserSearch(
+                                `${user.fullName} (${user.userCode})`,
+                              );
+
+                              setShowUserDropdown(false);
+                            }}
+                            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition ${
+                              selected
+                                ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
+                                : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5'
+                            }`}
+                          >
+                            <div
+                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                                selected
+                                  ? 'bg-amber-500 text-white'
+                                  : 'bg-gray-100 text-gray-500 dark:bg-gray-800'
+                              }`}
+                            >
+                              <UserRound className="h-4 w-4" />
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold">
+                                {user.fullName}
+                              </p>
+
+                              <p className="mt-0.5 text-[10px] text-gray-400">
+                                รหัส {user.userCode}
+                              </p>
+                            </div>
+
+                            {selected && (
+                              <span className="text-xs font-semibold text-amber-600">
+                                เลือกแล้ว
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
             </Field>
 
             {/* DATE + PRICE */}
@@ -417,16 +529,47 @@ export default function MaintainModal({
                 icon={<CalendarDays className="h-4 w-4" />}
                 required
               >
-                <div className="relative">
+                <div className="grid grid-cols-[1fr_120px] gap-2">
                   <input
-                    type="datetime-local"
-                    value={form.dateMaintain}
+                    type="date"
+                    value={getDatePart(form.dateMaintain)}
                     onChange={(event) =>
-                      updateField('dateMaintain', event.target.value)
+                      updateField(
+                        'dateMaintain',
+                        mergeDateTime(
+                          form.dateMaintain,
+                          'date',
+                          event.target.value,
+                        ),
+                      )
                     }
                     disabled={isSaving}
-                    className={`${inputClass} h-12!`}
+                    className={inputClass}
                   />
+
+                  <select
+                    value={getTimePart(form.dateMaintain)}
+                    onChange={(event) =>
+                      updateField(
+                        'dateMaintain',
+                        mergeDateTime(
+                          form.dateMaintain,
+                          'time',
+                          event.target.value,
+                        ),
+                      )
+                    }
+                    disabled={isSaving}
+                    className={inputClass}
+                  >
+                    <option value="">--:--</option>
+
+                    {timeOptions.map((time) => (
+                      <option key={time} value={time}>
+                        {time} น.
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </Field>
 

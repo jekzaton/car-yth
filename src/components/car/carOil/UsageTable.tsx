@@ -14,7 +14,6 @@ import {
   Gauge,
   MapPin,
   Pencil,
-  Trash2,
   UserRound,
 } from 'lucide-react';
 
@@ -49,15 +48,14 @@ export default function UsageTable({
 
   onCreateUsage,
   onEdit,
-  onDelete,
 }: UsageTableProps) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm dark:border-white/10 dark:bg-gray-900">
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
       <div className="overflow-x-auto">
-        <table className="min-w-7xl w-full">
+        <table className="min-w-330 w-full">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50/80 text-left dark:border-white/10 dark:bg-white/5">
-              <th className="w-16 px-5 py-4 text-xs font-semibold text-gray-500">
+              <th className="w-16 px-4 py-3.5 text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                 #
               </th>
 
@@ -106,7 +104,7 @@ export default function UsageTable({
                 return (
                   <tr
                     key={item.bookingId}
-                    className="group transition-colors hover:bg-blue-50/40 dark:hover:bg-white/5"
+                    className="dark:hover:bg-white/3 group transition-colors duration-150 hover:bg-blue-50/30"
                   >
                     {/* INDEX */}
                     <td className="px-5 py-4">
@@ -116,18 +114,18 @@ export default function UsageTable({
                     </td>
 
                     {/* DRIVER */}
-                    <td className="px-5 py-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-500 dark:bg-indigo-500/10">
+                    <td className="px-4 py-4">
+                      <div className="dark:bg-white/3 min-w-48 overflow-hidden rounded-xl border border-gray-200 bg-gray-50/60 dark:border-gray-800">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
                           <UserRound className="h-4 w-4" />
                         </div>
 
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                          <p className="max-w-44 truncate text-sm font-semibold text-gray-900 dark:text-white">
                             {item.driverName || '-'}
                           </p>
 
-                          <p className="mt-1 text-xs text-gray-400">
+                          <p className="mt-1 text-[10px] font-medium text-gray-400">
                             รหัส {item.driverCode || '-'}
                           </p>
                         </div>
@@ -135,22 +133,33 @@ export default function UsageTable({
                     </td>
 
                     {/* CAR */}
-                    <td className="px-5 py-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
-                          <CarFront className="h-4 w-4" />
+                    <td className="px-4 py-4">
+                      <div className="flex min-w-56 items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shadow-sm dark:bg-blue-500/10 dark:text-blue-300">
+                          <CarFront className="h-5 w-5" />
                         </div>
 
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                            {item.carName || '-'}
-                          </p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p
+                              className="max-w-52 truncate text-sm font-bold text-gray-900 dark:text-white"
+                              title={[item.carBrand, item.carBrandSub]
+                                .filter(Boolean)
+                                .join(' ')}
+                            >
+                              {[item.carBrand, item.carBrandSub]
+                                .filter(Boolean)
+                                .join(' ') || 'ไม่ระบุข้อมูลรถ'}
+                            </p>
 
-                          <p className="mt-1 text-xs text-gray-500">
-                            {item.carBrand || '-'}
-                          </p>
+                            {item.carCode && (
+                              <span className="rounded-lg bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
+                                {item.carCode}
+                              </span>
+                            )}
+                          </div>
 
-                          <span className="mt-1 inline-flex rounded-lg bg-gray-100 px-2 py-1 text-[11px] font-semibold text-gray-700 dark:bg-white/10 dark:text-gray-300">
+                          <span className="mt-2 inline-flex rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700 dark:bg-white/10 dark:text-gray-300">
                             ทะเบียน {item.licensePlate || '-'}
                           </span>
                         </div>
@@ -207,25 +216,24 @@ export default function UsageTable({
                     </td>
 
                     {/* DEPARTMENT / DESTINATION */}
-                    <td className="px-5 py-4">
-                      <div className="min-w-0 max-w-sm space-y-2.5">
-                        {/* หน่วยงาน */}
-                        <div>
-                          <span className="inline-flex rounded-lg bg-sky-50 px-2.5 py-1.5 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
-                            {item.departmentName || 'ไม่ระบุหน่วยงาน'}
-                          </span>
-                        </div>
+                    <td className="px-4 py-4">
+                      <div className="max-w-72 space-y-2.5">
+                        <span className="inline-flex rounded-lg bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
+                          {item.departmentName || 'ไม่ระบุหน่วยงาน'}
+                        </span>
 
-                        {/* สถานที่ */}
                         <div className="flex items-start gap-2">
-                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
 
                           <div className="min-w-0">
                             <p className="text-[10px] font-medium text-gray-400">
                               สถานที่เดินทาง
                             </p>
 
-                            <p className="mt-0.5 line-clamp-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <p
+                              className="mt-0.5 line-clamp-2 text-sm font-medium leading-5 text-gray-700 dark:text-gray-300"
+                              title={item.destination || undefined}
+                            >
                               {item.destination || '-'}
                             </p>
                           </div>
@@ -247,9 +255,9 @@ export default function UsageTable({
                             <button
                               type="button"
                               onClick={() => onCreateUsage?.(item)}
-                              className="group/btn bg-linear-to-r inline-flex h-10 items-center justify-center gap-2 rounded-xl from-blue-600 to-indigo-600 px-4 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 transition-all hover:-translate-y-0.5 hover:shadow-md hover:shadow-blue-500/25 active:translate-y-0"
+                              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3.5 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700"
                             >
-                              <Pencil className="h-3.5 w-3.5 transition-transform group-hover/btn:rotate-6" />
+                              <Pencil className="h-3.5 w-3.5" />
                               ลงรายละเอียด
                             </button>
                           </div>
@@ -266,9 +274,9 @@ export default function UsageTable({
                               <button
                                 type="button"
                                 onClick={() => onEdit?.(item)}
-                                className="group/btn inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-blue-100 bg-blue-50 px-3 text-xs font-semibold text-blue-600 transition-all hover:border-blue-200 hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300 dark:hover:bg-blue-500/20"
+                                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-blue-100 bg-blue-50 px-3 text-xs font-semibold text-blue-600 transition hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300"
                               >
-                                <Pencil className="h-3.5 w-3.5 transition-transform group-hover/btn:rotate-6" />
+                                <Pencil className="h-3.5 w-3.5" />
                                 แก้ไข
                               </button>
 

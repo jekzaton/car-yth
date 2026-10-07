@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
         // CAR
         // =========================
         carCode: car_oil.car_code,
-        carName: cars.car_name,
+        carBrandSub: cars.car_brand_sub,
         carBrand: car_brand.car_brand_name,
         licensePlate: cars.license_plate,
 
@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
 
         // CAR
         carCode: item.carCode,
-        carName: item.carName ?? null,
+        carBrandSub: item.carBrandSub ?? null,
         carBrand: item.carBrand ?? null,
         licensePlate: item.licensePlate ?? null,
 

@@ -11,6 +11,7 @@ import { z } from 'zod';
 
 import Input from '@/components/form/input/InputField';
 import SearchSelect from '@/components/form/SearchSelect';
+import api from '@/lib/axios';
 
 type Department = {
   depId: number;
@@ -140,13 +141,13 @@ export default function CreateUserCar() {
 
         const [departmentResponse, positionResponse, systemResponse] =
           await Promise.all([
-            axios.get('/api/departments', {
+            api.get('/api/departments', {
               withCredentials: true,
             }),
-            axios.get('/api/positions', {
+            api.get('/api/positions', {
               withCredentials: true,
             }),
-            axios.get('/api/systems', {
+            api.get('/api/systems', {
               withCredentials: true,
             }),
           ]);
@@ -219,7 +220,7 @@ export default function CreateUserCar() {
         status_level: data.status_level,
       };
 
-      const response = await axios.post('/api/users', payload, {
+      const response = await api.post('/api/users', payload, {
         withCredentials: true,
       });
 

@@ -50,7 +50,7 @@ export default function MaintainTable({
   );
 
   return (
-    <section className="border-border bg-card overflow-hidden rounded-3xl border shadow-sm">
+    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
       {/* TABLE */}
 
       <div className="overflow-x-auto">
@@ -58,7 +58,7 @@ export default function MaintainTable({
           {/* HEADER */}
 
           <thead>
-            <tr className="border-border bg-muted/40 border-b">
+            <tr className="dark:bg-white/3 border-b border-gray-200 bg-gray-50/80 dark:border-gray-800">
               <TableHead className="w-16">#</TableHead>
 
               <TableHead>รถยนต์</TableHead>
@@ -89,7 +89,7 @@ export default function MaintainTable({
                 return (
                   <tr
                     key={item.id}
-                    className="hover:bg-muted/30 transition-colors duration-150"
+                    className="dark:hover:bg-white/3 group transition-colors duration-150 hover:bg-gray-50/80"
                   >
                     {/* =======================================
                         NUMBER
@@ -108,10 +108,10 @@ export default function MaintainTable({
                     {/* DATE + DETAIL */}
 
                     <td className="max-w-105 px-5 py-4">
-                      <div className="min-w-70 group flex items-start gap-3">
+                      <div className="flex min-w-72 items-start gap-3">
                         {/* ICON */}
 
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/10 bg-amber-500/10 text-amber-600 transition group-hover:bg-amber-500/15 dark:text-amber-300">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-300">
                           <Wrench className="h-4.5 w-4.5" />
                         </div>
 
@@ -121,7 +121,7 @@ export default function MaintainTable({
                           {/* DATE */}
 
                           <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                            <div className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+                            <div className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
                               <CalendarDays className="h-3.5 w-3.5" />
 
                               <span>{formatThaiDate(item.dateMaintain)}</span>
@@ -164,23 +164,23 @@ export default function MaintainTable({
                         ACTION
                     ======================================== */}
                     <td className="px-5 py-4">
-                      <div className="flex items-center justify-center gap-1.5">
+                      <div className="flex items-center justify-center gap-2">
                         <button
                           type="button"
                           onClick={() => onEdit(item)}
                           title="แก้ไข"
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-blue-500/10 bg-blue-500/10 text-blue-600 transition-all hover:border-blue-500/20 hover:bg-blue-500 hover:text-white dark:text-blue-300"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-blue-100 bg-blue-50 text-blue-600 transition hover:border-blue-500 hover:bg-blue-600 hover:text-white dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-3.5 w-3.5" />
                         </button>
 
                         <button
                           type="button"
                           onClick={() => onDelete(item)}
                           title="ลบ"
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-500/10 bg-rose-500/10 text-rose-600 transition-all hover:border-rose-500/20 hover:bg-rose-500 hover:text-white dark:text-rose-300"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-100 bg-rose-50 text-rose-600 transition hover:border-rose-500 hover:bg-rose-600 hover:text-white dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </td>
@@ -211,44 +211,39 @@ export default function MaintainTable({
 // CAR CELL
 
 function CarCell({ item }: { item: CarMaintainItem }) {
+  const carTitle =
+    [item.carBrand, item.carBrandSub].filter(Boolean).join(' ') ||
+    'ไม่ระบุข้อมูลรถ';
+
   return (
-    <div className="min-w-60">
+    <div className="min-w-64">
       <div className="flex items-center gap-3">
         {/* ICON */}
-
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/10 bg-amber-500/10 text-amber-600 dark:text-amber-300">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-600 shadow-sm dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
           <CarFront className="h-5 w-5" />
         </div>
 
         {/* INFO */}
-
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="max-w-45 text-foreground truncate text-sm font-bold">
-              {item.carName || '-'}
+            <p
+              className="max-w-56 truncate text-sm font-bold text-gray-900 dark:text-white"
+              title={carTitle}
+            >
+              {carTitle}
             </p>
 
-            <span className="inline-flex shrink-0 items-center rounded-md bg-orange-500/10 px-2 py-0.5 text-[10px] font-bold text-orange-700 dark:text-orange-300">
-              {item.carCode || '-'}
-            </span>
+            {item.carCode && (
+              <span className="inline-flex shrink-0 items-center rounded-lg bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+                {item.carCode}
+              </span>
+            )}
           </div>
 
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-muted-foreground text-xs font-medium">
-              {item.carBrand || 'ไม่ระบุยี่ห้อ'}
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-lg bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-700 dark:bg-white/10 dark:text-gray-300">
+              ทะเบียน {item.licensePlate || '-'}
             </span>
-
-            <span className="bg-border h-1 w-1 rounded-full" />
-
-            <div className="border-border bg-background inline-flex items-center overflow-hidden rounded-md border">
-              <span className="border-border bg-muted/60 text-muted-foreground border-r px-1.5 py-0.5 text-[9px]">
-                ทะเบียน
-              </span>
-
-              <span className="text-foreground px-2 py-0.5 text-[10px] font-bold tracking-wide">
-                {item.licensePlate || '-'}
-              </span>
-            </div>
           </div>
         </div>
       </div>
@@ -260,18 +255,18 @@ function CarCell({ item }: { item: CarMaintainItem }) {
 
 function UserCell({ item }: { item: CarMaintainItem }) {
   return (
-    <div className="flex min-w-40 items-center gap-2.5">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-300">
+    <div className="flex min-w-44 items-center gap-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
         <UserRound className="h-4 w-4" />
       </div>
 
       <div className="min-w-0">
-        <p className="max-w-45 text-foreground truncate text-sm font-semibold">
+        <p className="max-w-48 truncate text-sm font-semibold text-gray-900 dark:text-white">
           {item.userName || 'ไม่พบข้อมูล'}
         </p>
 
-        <p className="text-muted-foreground mt-0.5 text-[10px] font-medium">
-          {item.userCode || '-'}
+        <p className="mt-1 text-[10px] font-medium text-gray-400">
+          รหัส {item.userCode || '-'}
         </p>
       </div>
     </div>
@@ -289,7 +284,7 @@ function TableHead({
 }) {
   return (
     <th
-      className={`text-muted-foreground px-5 py-4 text-left text-xs font-bold ${className}`}
+      className={`px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 ${className}`}
     >
       {children}
     </th>

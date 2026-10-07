@@ -62,17 +62,17 @@ export async function verifyAuthToken(
   const { payload } = await jwtVerify(token, secretKey);
 
   const userId = Number(payload.sub);
-
   const cid = String(payload.cid ?? '');
-
   const statusLevel = String(payload.statusLevel ?? '');
 
-  const mustChangePassword = payload.mustChangePassword === true;
+  const mustChangePassword =
+    payload.mustChangePassword === true ||
+    payload.mustChangePassword === 'true';
 
   if (
     !Number.isInteger(userId) ||
     userId <= 0 ||
-    !cid ||
+    cid.length !== 13 ||
     !['user', 'member', 'admin'].includes(statusLevel)
   ) {
     throw new Error('Invalid token payload');

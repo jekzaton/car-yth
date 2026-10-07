@@ -256,7 +256,7 @@ export default function TableCarList() {
         item.bookingName,
         item.userCode,
         item.carCode,
-        item.carName,
+        item.carBrandSub,
         item.carBrand,
         item.licensePlate,
         item.typeName,

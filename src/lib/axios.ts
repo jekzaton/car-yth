@@ -2,8 +2,10 @@
 
 import axios from 'axios';
 
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
 const api = axios.create({
-  baseURL: '/',
+  baseURL: BASE_PATH,
   withCredentials: true,
   headers: {
     Accept: 'application/json',
@@ -17,28 +19,13 @@ api.interceptors.response.use(
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
 
-      // SESSION / JWT หมดอายุ
+      if (status === 401 && typeof window !== 'undefined') {
+        const signInPath = `${BASE_PATH}/signin`;
 
-      if (
-        status === 401 &&
-        typeof window !== 'undefined' &&
-        window.location.pathname !== '/signin'
-      ) {
-        /*
-         * ใช้ replace แทน href
-         *
-         * เพื่อไม่ให้กด Back
-         * กลับไปหน้าที่ session หมดอายุ
-         */
-        window.location.replace('/signin');
+        if (window.location.pathname !== signInPath) {
+          window.location.replace(signInPath);
+        }
       }
-
-      /*
-       * 403 ไม่ redirect
-       *
-       * เพราะผู้ใช้ยัง Login อยู่
-       * แต่ไม่มีสิทธิ์ทำรายการ
-       */
     }
 
     return Promise.reject(error);

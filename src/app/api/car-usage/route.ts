@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { and, desc, eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
 import {
@@ -23,9 +23,7 @@ export async function GET() {
   try {
     const result = await db
       .select({
-        // ==========================================
         // BOOKING
-        // ==========================================
         bookingId: car_booking.bookingId,
 
         carCode: car_booking.carCode,
@@ -46,93 +44,53 @@ export async function GET() {
 
         status: car_booking.status,
 
-        // ==========================================
         // ผู้จอง
-        // ==========================================
         userPrefix: booker.prefix,
-
         userFirstName: booker.first_name,
-
         userLastName: booker.last_name,
 
-        // ==========================================
         // รถ
-        // ==========================================
-        carName: cars.car_name,
+        carBrandSub: cars.car_brand_sub,
 
         carBrandId: cars.car_brand_id,
 
-        // ใช้ชื่อยี่ห้อจากตาราง car_brand
         carBrand: car_brand.car_brand_name,
 
         licensePlate: cars.license_plate,
 
         carImage: cars.car_image,
 
-        // ==========================================
         // คนขับ
-        // ==========================================
         driverPrefix: driver.prefix,
-
         driverFirstName: driver.first_name,
-
         driverLastName: driver.last_name,
 
-        // ==========================================
-        // หน่วยงานของผู้จอง
-        // ==========================================
+        // หน่วยงาน
         departmentName: departments.dep_name,
 
-        // ==========================================
         // USAGE
-        // ==========================================
         usageId: car_usage.id,
 
         dateGo: car_usage.date_go,
-
         dateBack: car_usage.date_back,
 
         kmGo: car_usage.km_go,
-
         kmBack: car_usage.km_back,
       })
-
       .from(car_booking)
 
-      // ==========================================
-      // รถ
-      // ==========================================
       .leftJoin(cars, eq(cars.car_code, car_booking.carCode))
 
-      // ==========================================
-      // ยี่ห้อรถ
-      // cars.car_brand_id -> car_brand.car_brand_id
-      // ==========================================
       .leftJoin(car_brand, eq(car_brand.car_brand_id, cars.car_brand_id))
 
-      // ==========================================
-      // ผู้จอง
-      // ==========================================
       .leftJoin(booker, eq(booker.user_code, car_booking.userCode))
 
-      // ==========================================
-      // หน่วยงานของผู้จอง
-      // ==========================================
       .leftJoin(departments, eq(departments.dep_id, booker.dep_id))
 
-      // ==========================================
-      // คนขับ
-      // ==========================================
       .leftJoin(driver, eq(driver.user_code, car_booking.cUCode))
 
-      // ==========================================
-      // ข้อมูลการใช้งาน
-      // ==========================================
       .leftJoin(car_usage, eq(car_usage.booking_id, car_booking.bookingId))
 
-      // ==========================================
-      // เฉพาะรายการอนุมัติ
-      // ==========================================
       .where(eq(car_booking.status, 'approved'))
 
       .orderBy(desc(car_booking.startDate), desc(car_booking.startTime));
@@ -158,66 +116,42 @@ export async function GET() {
 
         usageId: item.usageId,
 
-        // ========================================
         // รถ
-        // ========================================
         carCode: item.carCode,
-
-        carName: item.carName,
-
+        carBrandSub: item.carBrandSub,
         carBrandId: item.carBrandId,
-
         carBrand: item.carBrand,
-
         licensePlate: item.licensePlate,
-
         carImage: item.carImage,
 
-        // ========================================
         // ผู้จอง
-        // ========================================
         userCode: item.userCode,
-
         userName: userName || null,
 
-        // ========================================
         // คนขับ
-        // ========================================
         driverCode: item.driverCode,
-
         driverName: driverName || null,
 
-        // ========================================
         // หน่วยงาน
-        // ========================================
         departmentName: item.departmentName ?? null,
 
-        // ========================================
         // BOOKING
-        // ========================================
         startDate: item.startDate,
-
         startTime: item.startTime,
 
         endDate: item.endDate,
-
         endTime: item.endTime,
 
         subject: item.subject,
-
         destination: item.destination,
 
         status: item.status,
 
-        // ========================================
         // USAGE
-        // ========================================
         dateGo: item.dateGo,
-
         dateBack: item.dateBack,
 
         kmGo: item.kmGo ?? 0,
-
         kmBack: item.kmBack ?? 0,
 
         hasUsage: item.usageId !== null,

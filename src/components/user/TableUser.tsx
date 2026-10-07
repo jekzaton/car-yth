@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
-  CirclePlus,
   Database,
   Loader2,
   Pencil,
@@ -17,7 +16,7 @@ import {
 import { Modal } from '../ui/modal';
 import { useModal } from '@/hooks/useModal';
 import { toast } from 'react-toastify';
-import DateTimeText from '../common/DateTimeText';
+
 import TimeAgo from '../common/TimeAgo';
 import UserHeader from './UserHeader';
 import api from '@/lib/axios';
@@ -74,7 +73,7 @@ export default function TableUser() {
     try {
       setIsLoading(true);
 
-      const response = await axios.get(API_URL, {
+      const response = await api.get(API_URL, {
         params: {
           _t: Date.now(),
         },
@@ -169,7 +168,7 @@ export default function TableUser() {
     try {
       setDeleting(true);
 
-      await axios.delete('/api/users/del', {
+      await api.delete('/api/users/del', {
         params: {
           id: selectedUser.id,
         },
@@ -222,7 +221,7 @@ export default function TableUser() {
     try {
       setUpdatingStatusId(selectedUser.id);
 
-      const response = await axios.patch(
+      const response = await api.patch(
         '/api/users/status',
         {
           id: selectedUser.id,

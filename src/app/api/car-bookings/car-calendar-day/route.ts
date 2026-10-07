@@ -1,42 +1,97 @@
-import { db } from '@/db';
-import { cars } from '@/db/schema';
-import { car_booking } from '@/db/schema/car_booking';
 import { NextResponse } from 'next/server';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
+
+import { db } from '@/db';
+import { car_brand, cars } from '@/db/schema';
+import { car_booking } from '@/db/schema/car_booking';
+import { AuthError, requireAuth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// =========================
-// CONVERT DATE + TIME
-// =========================
-function createDateTime(date: unknown, time: unknown) {
-  const dateValue =
-    date instanceof Date
-      ? date.toISOString().slice(0, 10)
-      : String(date ?? '').slice(0, 10);
+// =========================================================
+// TYPES
+// =========================================================
 
-  const timeValue = String(time ?? '').slice(0, 8);
+type CarStatus = 'active' | 'inactive';
 
-  const value = new Date(`${dateValue}T${timeValue}`);
+// =========================================================
+// VALIDATE DATE / TIME
+// =========================================================
 
-  return value;
+function isValidDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const [year, month, day] = value.split('-').map(Number);
+
+  const date = new Date(year, month - 1, day);
+
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  );
 }
 
-// =========================
+function isValidTime(value: string): boolean {
+  return /^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(value);
+}
+
+function normalizeTime(value: string): string {
+  return value.length === 5 ? `${value}:00` : value;
+}
+
+function createDateTime(date: string, time: string): Date | null {
+  if (!isValidDate(date) || !isValidTime(time)) {
+    return null;
+  }
+
+  const [year, month, day] = date.split('-').map(Number);
+
+  const normalizedTime = normalizeTime(time);
+
+  const [hour, minute, second] = normalizedTime.split(':').map(Number);
+
+  const result = new Date(year, month - 1, day, hour, minute, second, 0);
+
+  if (Number.isNaN(result.getTime())) {
+    return null;
+  }
+
+  return result;
+}
+
+// =========================================================
 // GET AVAILABLE CARS
-// =========================
-export async function GET(req: Request) {
+// =========================================================
+
+export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(req.url);
+    // =====================================================
+    // AUTH
+    // user / member / admin ใช้งานได้
+    // =====================================================
 
-    const startDate = searchParams.get('startDate');
-    const startTime = searchParams.get('startTime');
+    await requireAuth(request);
 
-    const endDate = searchParams.get('endDate');
-    const endTime = searchParams.get('endTime');
+    // =====================================================
+    // QUERY PARAMS
+    // =====================================================
 
-    // ================= VALIDATE =================
+    const { searchParams } = new URL(request.url);
+
+    const startDate = searchParams.get('startDate')?.trim() ?? '';
+    const startTime = searchParams.get('startTime')?.trim() ?? '';
+
+    const endDate = searchParams.get('endDate')?.trim() ?? '';
+    const endTime = searchParams.get('endTime')?.trim() ?? '';
+
+    // =====================================================
+    // REQUIRED
+    // =====================================================
+
     if (!startDate || !startTime || !endDate || !endTime) {
       return NextResponse.json(
         {
@@ -50,15 +105,36 @@ export async function GET(req: Request) {
       );
     }
 
-    // ================= REQUEST DATETIME =================
-    const requestStart = createDateTime(startDate, startTime);
-
-    const requestEnd = createDateTime(endDate, endTime);
+    // =====================================================
+    // VALIDATE FORMAT
+    // =====================================================
 
     if (
-      Number.isNaN(requestStart.getTime()) ||
-      Number.isNaN(requestEnd.getTime())
+      !isValidDate(startDate) ||
+      !isValidTime(startTime) ||
+      !isValidDate(endDate) ||
+      !isValidTime(endTime)
     ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'รูปแบบวันหรือเวลาไม่ถูกต้อง',
+          data: [],
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    const normalizedStartTime = normalizeTime(startTime);
+    const normalizedEndTime = normalizeTime(endTime);
+
+    const requestStart = createDateTime(startDate, normalizedStartTime);
+
+    const requestEnd = createDateTime(endDate, normalizedEndTime);
+
+    if (!requestStart || !requestEnd) {
       return NextResponse.json(
         {
           success: false,
@@ -84,120 +160,151 @@ export async function GET(req: Request) {
       );
     }
 
-    // ========================================
-    // GET ACTIVE CARS
-    // ========================================
+    // =====================================================
+    // ACTIVE CARS
+    // =====================================================
+
     const allCars = await db
-      .select()
+      .select({
+        id: cars.id,
+
+        carCode: cars.car_code,
+        carBrandSub: cars.car_brand_sub,
+
+        carBrandId: cars.car_brand_id,
+        carBrand: car_brand.car_brand_name,
+
+        licensePlate: cars.license_plate,
+        carImage: cars.car_image,
+
+        status: cars.status,
+      })
       .from(cars)
+      .leftJoin(car_brand, eq(car_brand.car_brand_id, cars.car_brand_id))
       .where(eq(cars.status, 'active'));
 
     if (allCars.length === 0) {
-      return NextResponse.json({
-        success: true,
-        message: 'ไม่พบรถที่เปิดใช้งานในระบบ',
-        data: [],
-        meta: {
-          totalCars: 0,
-          busyCars: 0,
-          availableCars: 0,
+      return NextResponse.json(
+        {
+          success: true,
+          message: 'ไม่พบรถที่เปิดใช้งานในระบบ',
+          data: [],
+
+          meta: {
+            totalCars: 0,
+            busyCars: 0,
+            availableCars: 0,
+
+            requestedPeriod: {
+              startDate,
+              startTime: normalizedStartTime,
+              endDate,
+              endTime: normalizedEndTime,
+            },
+
+            busyCarCodes: [],
+          },
         },
-      });
+        {
+          headers: {
+            'Cache-Control': 'no-store',
+          },
+        },
+      );
     }
 
-    // ========================================
-    // GET ACTIVE BOOKINGS
+    // =====================================================
+    // BUSY CARS
+    // =====================================================
     //
-    // pending  = รออนุมัติ
-    // approved = อนุมัติแล้ว
+    // overlap:
     //
-    // cancelled ไม่ต้องนำมาคำนวณ
-    // ========================================
-    const bookings = await db
+    // existingStart < requestEnd
+    // &&
+    // existingEnd > requestStart
+    //
+    // pending / approved เท่านั้น
+    // cancelled ไม่นับ
+    //
+    // 08:00 - 12:00
+    // 12:00 - 14:00 = ไม่ชน
+    // =====================================================
+
+    const busyBookings = await db
       .select({
-        bookingId: car_booking.bookingId,
         carCode: car_booking.carCode,
-
-        startDate: car_booking.startDate,
-        startTime: car_booking.startTime,
-
-        endDate: car_booking.endDate,
-        endTime: car_booking.endTime,
-
-        status: car_booking.status,
       })
       .from(car_booking)
-      .where(inArray(car_booking.status, ['pending', 'approved']));
+      .where(
+        and(
+          inArray(car_booking.status, ['pending', 'approved']),
 
-    // ========================================
-    // FIND BUSY CARS
-    // ========================================
+          // booking เดิมเริ่มก่อนเวลาที่ขอสิ้นสุด
+          sql`
+            TIMESTAMP(
+              ${car_booking.startDate},
+              ${car_booking.startTime}
+            )
+            <
+            TIMESTAMP(
+              ${endDate},
+              ${normalizedEndTime}
+            )
+          `,
+
+          // booking เดิมสิ้นสุดหลังเวลาที่ขอเริ่ม
+          sql`
+            TIMESTAMP(
+              ${car_booking.endDate},
+              ${car_booking.endTime}
+            )
+            >
+            TIMESTAMP(
+              ${startDate},
+              ${normalizedStartTime}
+            )
+          `,
+        ),
+      );
+
+    // =====================================================
+    // BUSY CAR CODES
+    // =====================================================
+
     const busyCarCodes = new Set<string>();
 
-    for (const booking of bookings) {
-      if (!booking.carCode) {
-        continue;
-      }
-
-      const bookingStart = createDateTime(booking.startDate, booking.startTime);
-
-      const bookingEnd = createDateTime(booking.endDate, booking.endTime);
-
-      if (
-        Number.isNaN(bookingStart.getTime()) ||
-        Number.isNaN(bookingEnd.getTime())
-      ) {
-        console.warn(
-          `Invalid booking datetime: bookingId=${booking.bookingId}`,
-        );
-
-        continue;
-      }
-
-      /*
-       * เวลา overlap เมื่อ:
-       *
-       * เวลาที่ขอเริ่ม < booking เดิมสิ้นสุด
-       * &&
-       * เวลาที่ขอสิ้นสุด > booking เดิมเริ่ม
-       *
-       * ตัวอย่าง:
-       *
-       * Booking เดิม:
-       * 08:00 - 12:00
-       *
-       * 09:00 - 10:00 = ชน ❌
-       * 11:30 - 13:00 = ชน ❌
-       * 07:00 - 09:00 = ชน ❌
-       *
-       * 12:00 - 14:00 = ไม่ชน ✅
-       * 06:00 - 08:00 = ไม่ชน ✅
-       */
-      const overlap = requestStart < bookingEnd && requestEnd > bookingStart;
-
-      if (overlap) {
+    for (const booking of busyBookings) {
+      if (booking.carCode) {
         busyCarCodes.add(booking.carCode);
       }
     }
 
-    // ========================================
+    // =====================================================
     // AVAILABLE CARS
-    // ========================================
+    // =====================================================
+
     const availableCars = allCars.filter(
-      (car) => !busyCarCodes.has(car.car_code),
+      (car) => !busyCarCodes.has(car.carCode),
     );
 
-    // ========================================
+    // =====================================================
     // RESPONSE
-    // ========================================
+    // =====================================================
+
     const data = availableCars.map((car) => ({
       id: car.id,
-      carCode: car.car_code,
-      carName: car.car_name,
-      carBrand: car.car_brand,
-      licensePlate: car.license_plate,
-      carImage: car.car_image,
-      status: car.status,
+
+      carCode: car.carCode,
+
+      carBrandSub: car.carBrandSub,
+
+      carBrandId: car.carBrandId,
+      carBrand: car.carBrand,
+
+      licensePlate: car.licensePlate,
+      carImage: car.carImage,
+
+      status: car.status as CarStatus,
     }));
 
     return NextResponse.json(
@@ -206,7 +313,7 @@ export async function GET(req: Request) {
 
         message:
           data.length > 0
-            ? `พบรถว่าง ${data.length} คัน`
+            ? `พบรถว่าง ${data.length.toLocaleString('th-TH')} คัน`
             : 'ไม่พบรถว่างในช่วงเวลาที่เลือก',
 
         data,
@@ -218,9 +325,10 @@ export async function GET(req: Request) {
 
           requestedPeriod: {
             startDate,
-            startTime,
+            startTime: normalizedStartTime,
+
             endDate,
-            endTime,
+            endTime: normalizedEndTime,
           },
 
           busyCarCodes: Array.from(busyCarCodes),
@@ -235,8 +343,29 @@ export async function GET(req: Request) {
         },
       },
     );
-  } catch (error) {
-    console.error('GET car-calendar-day error:', error);
+  } catch (error: unknown) {
+    // =====================================================
+    // AUTH
+    // =====================================================
+
+    if (error instanceof AuthError) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.message,
+          data: [],
+        },
+        {
+          status: error.status,
+        },
+      );
+    }
+
+    // =====================================================
+    // UNKNOWN
+    // =====================================================
+
+    console.error('GET /api/car-bookings/car-calendar-day error:', error);
 
     return NextResponse.json(
       {

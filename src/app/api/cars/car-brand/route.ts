@@ -34,7 +34,7 @@ function handleAuthError(error: unknown) {
 export async function GET(request: NextRequest) {
   try {
     // ต้อง Login ก่อน
-    // await requireAuth(request);
+    await requireAuth(request);
 
     const data = await db
       .select({
@@ -355,7 +355,7 @@ export async function DELETE(request: NextRequest) {
       .select({
         id: cars.id,
         carCode: cars.car_code,
-        carName: cars.car_name,
+        carBrandSub: cars.car_brand_sub,
       })
       .from(cars)
       .where(eq(cars.car_brand_id, id))

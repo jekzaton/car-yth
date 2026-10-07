@@ -58,7 +58,7 @@ function parseDateTime(value: unknown): Date | null {
   const raw = value.trim();
 
   const match = raw.match(
-    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{1,2}):(\d{2})(?::(\d{2}))?/,
+    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{1,2}):(\d{2})(?::(\d{2}))?$/,
   );
 
   if (!match) {
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
 
         priceMaintain: car_maintain.price_maintain,
 
-        carName: cars.car_name,
+        carBrandSub: cars.car_brand_sub,
 
         carBrandId: cars.car_brand_id,
 
@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
 
         carCode: item.carCode,
 
-        carName: item.carName,
+        carBrandSub: item.carBrandSub ?? null,
 
         carBrandId: item.carBrandId ?? null,
 

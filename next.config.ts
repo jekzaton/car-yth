@@ -1,34 +1,31 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  images:{
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "localhost",
-        port: "3000",
-        pathname: "/images/**",
-      },
-    ],
+  basePath: '/ythcar',
+
+  output: 'standalone',
+
+  images: {
+    unoptimized: true,
   },
-  /* config options here */
+
   webpack(config) {
     config.module.rules.push({
       test: /\.svg$/,
-      use: ["@svgr/webpack"],
+      use: ['@svgr/webpack'],
     });
+
     return config;
   },
-    
-    turbopack: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
+
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
       },
     },
-  
+  },
 };
 
 export default nextConfig;

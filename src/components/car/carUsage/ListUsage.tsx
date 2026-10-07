@@ -17,6 +17,7 @@ import {
   UsersRound,
 } from 'lucide-react';
 import { normalizeBookingDate, toDateTimeLocal } from '@/utils/formatters';
+import api from '@/lib/axios';
 
 type ListUsageProps = {
   onCreateUsage?: (item: CarUsageItem) => void;
@@ -52,7 +53,7 @@ export default function ListUsage({}: ListUsageProps) {
     try {
       setIsLoading(true);
 
-      const response = await axios.get('/api/car-usage', {
+      const response = await api.get('/api/car-usage', {
         params: {
           _t: Date.now(),
         },
@@ -117,7 +118,7 @@ export default function ListUsage({}: ListUsageProps) {
         item.driverCode,
 
         item.carBrand,
-        item.carName,
+        item.carBrandSub,
         item.licensePlate,
 
         item.departmentName,
@@ -237,7 +238,7 @@ export default function ListUsage({}: ListUsageProps) {
       setSaving(true);
 
       if (usageMode === 'create') {
-        await axios.post('/api/car-usage', {
+        await api.post('/api/car-usage', {
           bookingId: selectedUsage.bookingId,
 
           dateGo,
@@ -252,7 +253,7 @@ export default function ListUsage({}: ListUsageProps) {
           return;
         }
 
-        await axios.put(`/api/car-usage/${selectedUsage.usageId}`, {
+        await api.put(`/api/car-usage/${selectedUsage.usageId}`, {
           dateGo,
           dateBack,
 
@@ -351,7 +352,7 @@ export default function ListUsage({}: ListUsageProps) {
           setUsageModalOpen(false);
           setSelectedUsage(null);
         }}
-        className="max-w-xl p-6"
+        className="max-w-2xl p-5 sm:p-6"
       >
         <div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">
@@ -375,21 +376,43 @@ export default function ListUsage({}: ListUsageProps) {
 
                   {/* CAR INFO */}
                   <div className="min-w-0 flex-1">
+                    {/* ชื่อรถ + รหัสรถ */}
                     <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="truncate text-base font-bold text-gray-900 dark:text-white">
-                        {selectedUsage.carName || '-'}
+                      <h4 className="truncate text-base font-bold tracking-tight text-gray-900 dark:text-white">
+                        {[selectedUsage.carBrand, selectedUsage.carBrandSub]
+                          .filter(Boolean)
+                          .join(' ') || 'ไม่ระบุข้อมูลรถ'}
                       </h4>
 
                       {selectedUsage.carCode && (
-                        <span className="rounded-md bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:bg-blue-500/15 dark:text-blue-300">
+                        <span className="inline-flex shrink-0 items-center rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-600 shadow-sm dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
                           {selectedUsage.carCode}
                         </span>
                       )}
                     </div>
 
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      {selectedUsage.carBrand || 'ไม่ระบุยี่ห้อ'}
-                    </p>
+                    {/* รายละเอียดรอง */}
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+                      <span>
+                        ยี่ห้อ:
+                        <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">
+                          {selectedUsage.carBrand || '-'}
+                        </span>
+                      </span>
+
+                      {selectedUsage.licensePlate && (
+                        <>
+                          <span className="h-1 w-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+
+                          <span>
+                            ทะเบียน:
+                            <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">
+                              {selectedUsage.licensePlate}
+                            </span>
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   {/* LICENSE */}
@@ -498,80 +521,182 @@ export default function ListUsage({}: ListUsageProps) {
             </div>
           )}
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          {/* ================= วันที่ / เวลา / เลขไมล์ ================= */}
+          <div className="mt-5 space-y-4">
             <div>
-              <label className="text-xs font-semibold text-gray-600">
-                วันเวลาเดินทาง
-              </label>
+              <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                ข้อมูลการเดินทาง
+              </h4>
 
-              <input
-                type="datetime-local"
-                value={dateGo}
-                onChange={(e) => setDateGo(e.target.value)}
-                className="mt-1.5 h-11 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-blue-500 dark:border-white/10 dark:bg-white/5"
-              />
+              <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+                ระบุวัน เวลา และเลขไมล์ตามการใช้งานจริง
+              </p>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-gray-600">
-                วันเวลากลับ
-              </label>
+            {/* DATE / TIME */}
+            <div className="dark:bg-white/3 rounded-2xl border border-gray-200 bg-gray-50/60 p-4 dark:border-white/10">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[1.2fr_0.8fr_1.2fr_0.8fr]">
+                {/* วันเดินทาง */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-300">
+                    วันเดินทาง
+                  </label>
 
-              <input
-                type="datetime-local"
-                value={dateBack}
-                onChange={(e) => setDateBack(e.target.value)}
-                className="mt-1.5 h-11 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-blue-500 dark:border-white/10 dark:bg-white/5"
-              />
+                  <input
+                    type="date"
+                    value={getDatePart(dateGo)}
+                    onChange={(e) =>
+                      setDateGo(mergeDateTime(dateGo, 'date', e.target.value))
+                    }
+                    className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-white/10 dark:bg-gray-900 dark:text-white"
+                  />
+                </div>
+
+                {/* เวลาเดินทาง */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-300">
+                    เวลา
+                  </label>
+
+                  <select
+                    value={getTimePart(dateGo)}
+                    onChange={(e) =>
+                      setDateGo(mergeDateTime(dateGo, 'time', e.target.value))
+                    }
+                    className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-white/10 dark:bg-gray-900 dark:text-white"
+                  >
+                    <option value="">--:--</option>
+
+                    {timeOptions.map((time) => (
+                      <option key={time} value={time}>
+                        {time} น.
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* วันกลับ */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-300">
+                    วันกลับ
+                  </label>
+
+                  <input
+                    type="date"
+                    value={getDatePart(dateBack)}
+                    onChange={(e) =>
+                      setDateBack(
+                        mergeDateTime(dateBack, 'date', e.target.value),
+                      )
+                    }
+                    className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-white/10 dark:bg-gray-900 dark:text-white"
+                  />
+                </div>
+
+                {/* เวลากลับ */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-300">
+                    เวลา
+                  </label>
+
+                  <select
+                    value={getTimePart(dateBack)}
+                    onChange={(e) =>
+                      setDateBack(
+                        mergeDateTime(dateBack, 'time', e.target.value),
+                      )
+                    }
+                    className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-white/10 dark:bg-gray-900 dark:text-white"
+                  >
+                    <option value="">--:--</option>
+
+                    {timeOptions.map((time) => (
+                      <option key={time} value={time}>
+                        {time} น.
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-gray-600">
-                เลขไมล์เริ่ม
-              </label>
+            {/* MILEAGE */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-300">
+                  เลขไมล์เริ่ม
+                </label>
 
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={kmGo}
-                onChange={(e) => setKmGo(e.target.value)}
-                placeholder="0"
-                className="mt-1.5 h-11 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-blue-500 dark:border-white/10 dark:bg-white/5"
-              />
-            </div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={kmGo}
+                    onChange={(e) => setKmGo(e.target.value)}
+                    placeholder="0"
+                    className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 pr-14 text-sm font-semibold text-gray-800 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-white/10 dark:bg-gray-900 dark:text-white"
+                  />
 
-            <div>
-              <label className="text-xs font-semibold text-gray-600">
-                เลขไมล์กลับ
-              </label>
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-400">
+                    กม.
+                  </span>
+                </div>
+              </div>
 
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={kmBack}
-                onChange={(e) => setKmBack(e.target.value)}
-                placeholder="0"
-                className="mt-1.5 h-11 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-blue-500 dark:border-white/10 dark:bg-white/5"
-              />
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-300">
+                  เลขไมล์กลับ
+                </label>
+
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={kmBack}
+                    onChange={(e) => setKmBack(e.target.value)}
+                    placeholder="0"
+                    className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 pr-14 text-sm font-semibold text-gray-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-white/10 dark:bg-gray-900 dark:text-white"
+                  />
+
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-400">
+                    กม.
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* ระยะทาง */}
-          <div className="mt-4 flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 dark:bg-white/5">
-            <span className="text-sm text-gray-500">ระยะทางรวม</span>
+          <div className="bg-linear-to-r mt-4 overflow-hidden rounded-2xl border border-blue-100 from-blue-50/70 to-indigo-50/60 dark:border-blue-500/20 dark:from-blue-500/10 dark:to-indigo-500/10">
+            <div className="flex items-center justify-between gap-4 px-4 py-3.5">
+              <div>
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                  ระยะทางรวม
+                </p>
 
-            <span className="text-lg font-bold text-blue-600">
-              {Math.max(
-                0,
-                Number(kmBack || 0) - Number(kmGo || 0),
-              ).toLocaleString('th-TH')}{' '}
-              กม.
-            </span>
+                <p className="mt-0.5 text-[10px] text-gray-400">
+                  คำนวณจากเลขไมล์กลับ - เลขไมล์เริ่ม
+                </p>
+              </div>
+
+              <div className="text-right">
+                <span className="text-2xl font-bold tracking-tight text-blue-600 dark:text-blue-300">
+                  {Math.max(
+                    0,
+                    Number(kmBack || 0) - Number(kmGo || 0),
+                  ).toLocaleString('th-TH')}
+                </span>
+
+                <span className="ml-1 text-sm font-semibold text-blue-500">
+                  กม.
+                </span>
+              </div>
+            </div>
           </div>
 
-          <div className="mt-6 flex justify-end gap-2">
+          <div className="mt-5 flex items-center justify-end gap-2 border-t border-gray-100 pt-4 dark:border-white/10">
             <button
               type="button"
               disabled={saving}
@@ -579,7 +704,7 @@ export default function ListUsage({}: ListUsageProps) {
                 setUsageModalOpen(false);
                 setSelectedUsage(null);
               }}
-              className="h-10 rounded-xl border border-gray-200 px-4 text-sm font-medium text-gray-600"
+              className="h-10 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-gray-300"
             >
               ยกเลิก
             </button>
@@ -588,7 +713,7 @@ export default function ListUsage({}: ListUsageProps) {
               type="button"
               disabled={saving}
               onClick={handleSaveUsage}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
 
@@ -603,4 +728,34 @@ export default function ListUsage({}: ListUsageProps) {
       </Modal>
     </div>
   );
+}
+
+const timeOptions = Array.from({ length: 48 }, (_, index) => {
+  const hour = Math.floor(index / 2);
+  const minute = index % 2 === 0 ? '00' : '30';
+
+  return `${String(hour).padStart(2, '0')}:${minute}`;
+});
+
+function getDatePart(value: string) {
+  return value ? value.split('T')[0] : '';
+}
+
+function getTimePart(value: string) {
+  return value ? value.split('T')[1]?.slice(0, 5) || '' : '';
+}
+
+function mergeDateTime(
+  currentValue: string,
+  type: 'date' | 'time',
+  value: string,
+) {
+  const currentDate = getDatePart(currentValue);
+  const currentTime = getTimePart(currentValue);
+
+  if (type === 'date') {
+    return value && currentTime ? `${value}T${currentTime}` : value;
+  }
+
+  return currentDate && value ? `${currentDate}T${value}` : currentDate;
 }

@@ -20,19 +20,15 @@ interface AuthTokenPayload {
 // ROUTES
 // ============================================================
 
-// หน้า Login / สมัครสมาชิก
 const authRoutes = ['/signin', '/signup'];
 
-// หน้าที่ไม่ต้อง Login
-const publicRoutes = ['/signin', '/signup', '/unauthorized'];
+// public จริง ๆ
+const publicRoutes = [...authRoutes];
 
-// หน้าบังคับเปลี่ยนรหัสผ่าน
 const CHANGE_PASSWORD_ROUTE = '/change-password';
 
-// USER ทั่วไปเข้าได้
 const userAllowedRoutes = ['/bookingCar', '/calendar', '/profile'];
 
-// หน้าเริ่มต้นตาม Role
 const USER_HOME = '/calendar';
 const STAFF_HOME = '/dashboard';
 
@@ -63,25 +59,26 @@ async function getAuthPayload(
     const { payload } = await jwtVerify(token, secretKey);
 
     const userId = Number(payload.sub);
-
     const cid = String(payload.cid ?? '');
-
     const statusLevel = String(payload.statusLevel ?? '');
 
-    /*
-     * รองรับ Token เก่าที่สร้างก่อนมี
-     * mustChangePassword
-     *
-     * ถ้าไม่มี field นี้ ให้ถือว่า false
-     */
-    const mustChangePassword = payload.mustChangePassword === true;
+    const mustChangePassword =
+      payload.mustChangePassword === true ||
+      payload.mustChangePassword === 'true';
 
     if (
       !Number.isInteger(userId) ||
       userId <= 0 ||
-      !cid ||
+      cid.length !== 13 ||
       !['user', 'member', 'admin'].includes(statusLevel)
     ) {
+      console.error('Invalid auth token payload:', {
+        sub: payload.sub,
+        cid: payload.cid,
+        statusLevel: payload.statusLevel,
+        mustChangePassword: payload.mustChangePassword,
+      });
+
       return null;
     }
 
@@ -91,7 +88,8 @@ async function getAuthPayload(
       statusLevel: statusLevel as StatusLevel,
       mustChangePassword,
     };
-  } catch {
+  } catch (error) {
+    console.error('JWT verify failed:', error);
     return null;
   }
 }
@@ -135,10 +133,6 @@ function redirectToSignin(request: NextRequest, deleteCookie = false) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // ==========================================================
-  // TOKEN
-  // ==========================================================
-
   const token = request.cookies.get('auth_token')?.value;
 
   const authUser = await getAuthPayload(token);
@@ -152,7 +146,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith(`${CHANGE_PASSWORD_ROUTE}/`);
 
   // ==========================================================
-  // 1. COOKIE มี แต่ TOKEN หมดอายุ / เสีย
+  // 1. COOKIE มี แต่ TOKEN ใช้ไม่ได้
   // ==========================================================
 
   if (token && !authUser) {
@@ -187,21 +181,6 @@ export async function proxy(request: NextRequest) {
   // 4. บังคับเปลี่ยน PASSWORD
   // ==========================================================
 
-  /*
-   * สำคัญ:
-   *
-   * เมื่อ mustChangePassword = true
-   * ผู้ใช้เข้าได้เฉพาะ /change-password
-   *
-   * ต่อให้พิมพ์:
-   * /bookingCar
-   * /calendar
-   * /profile
-   * /dashboard
-   *
-   * ก็จะถูกส่งกลับมาหน้านี้
-   */
-
   if (authUser.mustChangePassword) {
     if (isChangePasswordRoute) {
       return NextResponse.next();
@@ -211,8 +190,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // ==========================================================
-  // 5. เปลี่ยน PASSWORD แล้ว
-  //    ไม่ควรกลับเข้า /change-password
+  // 5. เปลี่ยน PASSWORD แล้ว ไม่ให้กลับ /change-password
   // ==========================================================
 
   if (isChangePasswordRoute) {
@@ -240,7 +218,17 @@ export async function proxy(request: NextRequest) {
   }
 
   // ==========================================================
-  // 8. ADMIN / MEMBER
+  // 8. ROOT
+  // ==========================================================
+
+  if (pathname === '/') {
+    const home = authUser.statusLevel === 'user' ? USER_HOME : STAFF_HOME;
+
+    return NextResponse.redirect(new URL(home, request.url));
+  }
+
+  // ==========================================================
+  // 9. ADMIN / MEMBER
   // ==========================================================
 
   if (authUser.statusLevel === 'admin' || authUser.statusLevel === 'member') {
@@ -248,22 +236,18 @@ export async function proxy(request: NextRequest) {
   }
 
   // ==========================================================
-  // 9. USER
+  // 10. USER
   // ==========================================================
 
   if (authUser.statusLevel === 'user') {
-    // route ที่ USER เข้าได้
     if (matchesRoute(pathname, userAllowedRoutes)) {
       return NextResponse.next();
     }
 
-    // root/dashboard
-    // ส่งกลับหน้าจองรถ
-    if (pathname === '/' || pathname === '/dashboard') {
+    if (pathname === '/dashboard') {
       return NextResponse.redirect(new URL(USER_HOME, request.url));
     }
 
-    // ไม่มีสิทธิ์
     return NextResponse.redirect(new URL('/unauthorized', request.url));
   }
 

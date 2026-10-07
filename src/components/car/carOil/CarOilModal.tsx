@@ -18,19 +18,13 @@ import { toast } from 'react-toastify';
 
 import { CarOilItem } from '@/types/carOilType';
 import api from '@/lib/axios';
+import { CarItem } from '@/types/carType';
+import { getTodayLocal } from '@/types/dateType';
+import { formatPriceInput } from '@/utils/formatNumber';
 
 // =========================================================
 // TYPES
 // =========================================================
-
-type CarItem = {
-  id: number;
-  carCode: string;
-  carName: string;
-  carBrand?: string | null;
-  licensePlate?: string | null;
-  status?: 'active' | 'inactive';
-};
 
 type DriverItem = {
   id: number;
@@ -137,7 +131,7 @@ export default function CarOilModal({
           },
         }),
 
-        axios.get('/api/cars/oil-brand', {
+        api.get('/api/cars/oil-brand', {
           params: {
             _t: Date.now(),
           },
@@ -157,19 +151,27 @@ export default function CarOilModal({
           id: number;
           carCode?: string;
           car_code?: string;
-          carName?: string;
-          car_name?: string;
+
+          carBrandSub?: string | null;
+          car_brand_sub?: string | null;
+
           carBrand?: string | null;
           car_brand?: string | null;
+
           licensePlate?: string | null;
           license_plate?: string | null;
+
           status?: 'active' | 'inactive';
         }) => ({
           id: item.id,
           carCode: item.carCode ?? item.car_code ?? '',
-          carName: item.carName ?? item.car_name ?? '',
+
+          carBrandSub: item.carBrandSub ?? item.car_brand_sub ?? null,
+
           carBrand: item.carBrand ?? item.car_brand ?? null,
+
           licensePlate: item.licensePlate ?? item.license_plate ?? null,
+
           status: item.status,
         }),
       );
@@ -272,7 +274,9 @@ export default function CarOilModal({
         kmDetail: String(editingItem.kmDetail ?? ''),
         literOil: String(editingItem.literOil ?? ''),
         priceOil: String(editingItem.priceOil ?? ''),
-        oilType: String(editingItem.oilType ?? ''),
+
+        // แก้ตรงนี้
+        oilType: String(editingItem.oilTypeId ?? ''),
       });
 
       return;
@@ -283,7 +287,6 @@ export default function CarOilModal({
       dateOil: getCurrentDateTimeLocal(),
     });
   }, [isOpen, editingItem]);
-
   // =========================================================
   // FORM
   // =========================================================
@@ -509,9 +512,10 @@ export default function CarOilModal({
 
                       {cars.map((car) => (
                         <option key={car.id} value={car.carCode}>
-                          {car.carName}
-                          {car.carBrand ? ` - ${car.carBrand}` : ''}
-                          {car.licensePlate ? ` (${car.licensePlate})` : ''}
+                          {[car.carBrand, car.carBrandSub]
+                            .filter(Boolean)
+                            .join(' ')}
+                          {car.licensePlate ? ` • ${car.licensePlate}` : ''}
                         </option>
                       ))}
                     </select>
@@ -546,11 +550,13 @@ export default function CarOilModal({
 
                           <div className="min-w-0">
                             <p className="text-foreground truncate text-xs font-bold">
-                              {selectedCar.carName}
+                              {[selectedCar.carBrand, selectedCar.carBrandSub]
+                                .filter(Boolean)
+                                .join(' ') || '-'}
                             </p>
 
                             <p className="text-muted-foreground mt-1 text-[11px]">
-                              {selectedCar.carBrand || '-'} · ทะเบียน{' '}
+                              รหัส {selectedCar.carCode || '-'} · ทะเบียน{' '}
                               {selectedCar.licensePlate || '-'}
                             </p>
                           </div>
@@ -589,19 +595,128 @@ export default function CarOilModal({
               >
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <Field label="วันที่ / เวลาเติมน้ำมัน" required>
-                    <div className="relative">
-                      <CalendarDays className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-amber-500" />
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.35fr_0.65fr]">
+                      {/* DATE */}
+                      <div>
+                        <div className="relative">
+                          <CalendarDays className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-amber-500" />
 
-                      <input
-                        type="datetime-local"
-                        value={form.dateOil}
-                        onChange={(event) =>
-                          updateForm('dateOil', event.target.value)
-                        }
-                        onClick={(event) => event.currentTarget.showPicker?.()}
-                        className={`${inputClass} pl-10`}
-                      />
+                          <input
+                            type="date"
+                            value={
+                              form.dateOil ? form.dateOil.split('T')[0] : ''
+                            }
+                            onChange={(event) => {
+                              const date = event.target.value;
+
+                              const time = form.dateOil?.includes('T')
+                                ? form.dateOil.split('T')[1]?.slice(0, 5) ||
+                                  '08:00'
+                                : '08:00';
+
+                              updateForm(
+                                'dateOil',
+                                date ? `${date}T${time}` : '',
+                              );
+                            }}
+                            className={`${inputClass} pl-10`}
+                          />
+                        </div>
+                      </div>
+
+                      {/* TIME */}
+                      <div className="relative">
+                        <div className="border-border bg-background flex h-11 items-center overflow-hidden rounded-xl border shadow-sm transition-all focus-within:border-amber-500 focus-within:ring-4 focus-within:ring-amber-500/10 hover:border-amber-400/60">
+                          {/* HOUR */}
+                          <select
+                            value={
+                              form.dateOil?.includes('T')
+                                ? form.dateOil.split('T')[1]?.slice(0, 2) || ''
+                                : ''
+                            }
+                            onChange={(event) => {
+                              const hour = event.target.value;
+
+                              const date = form.dateOil?.includes('T')
+                                ? form.dateOil.split('T')[0]
+                                : getTodayLocal();
+
+                              const minute = form.dateOil?.includes('T')
+                                ? form.dateOil.split('T')[1]?.slice(3, 5) ||
+                                  '00'
+                                : '00';
+
+                              updateForm(
+                                'dateOil',
+                                `${date}T${hour}:${minute}`,
+                              );
+                            }}
+                            className="text-foreground h-full flex-1 appearance-none bg-transparent px-3 text-center text-sm font-semibold outline-none"
+                          >
+                            {Array.from({ length: 24 }, (_, index) => {
+                              const hour = String(index).padStart(2, '0');
+
+                              return (
+                                <option key={hour} value={hour}>
+                                  {hour}
+                                </option>
+                              );
+                            })}
+                          </select>
+
+                          {/* COLON */}
+                          <span className="text-sm font-bold text-gray-400">
+                            :
+                          </span>
+
+                          {/* MINUTE */}
+                          <select
+                            value={
+                              form.dateOil?.includes('T')
+                                ? form.dateOil.split('T')[1]?.slice(3, 5) || ''
+                                : ''
+                            }
+                            onChange={(event) => {
+                              const minute = event.target.value;
+
+                              const date = form.dateOil?.includes('T')
+                                ? form.dateOil.split('T')[0]
+                                : getTodayLocal();
+
+                              const hour = form.dateOil?.includes('T')
+                                ? form.dateOil.split('T')[1]?.slice(0, 2) ||
+                                  '00'
+                                : '00';
+
+                              updateForm(
+                                'dateOil',
+                                `${date}T${hour}:${minute}`,
+                              );
+                            }}
+                            className="text-foreground h-full flex-1 appearance-none bg-transparent px-3 text-center text-sm font-semibold outline-none"
+                          >
+                            {Array.from({ length: 60 }, (_, index) => {
+                              const minute = String(index).padStart(2, '0');
+
+                              return (
+                                <option key={minute} value={minute}>
+                                  {minute}
+                                </option>
+                              );
+                            })}
+                          </select>
+
+                          {/* TIME LABEL */}
+                          <span className="text-muted-foreground mr-3 text-[10px]">
+                            น.
+                          </span>
+                        </div>
+                      </div>
                     </div>
+
+                    <p className="text-muted-foreground mt-1.5 text-[10px]">
+                      เลือกวันที่และเวลาที่เติมน้ำมัน
+                    </p>
                   </Field>
 
                   <Field label="เลขไมล์ปัจจุบัน" required>
@@ -637,7 +752,7 @@ export default function CarOilModal({
                       <option value="">เลือกประเภทน้ำมัน</option>
 
                       {oilBrands.map((oil) => (
-                        <option key={oil.id} value={oil.id}>
+                        <option key={oil.id} value={String(oil.id)}>
                           {oil.oilName}
                         </option>
                       ))}
@@ -672,18 +787,35 @@ export default function CarOilModal({
                         <Wallet className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-500" />
 
                         <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={form.priceOil}
-                          onChange={(event) =>
-                            updateForm('priceOil', event.target.value)
+                          type="text"
+                          inputMode="decimal"
+                          value={
+                            form.priceOil ? formatPriceInput(form.priceOil) : ''
                           }
+                          onChange={(event) => {
+                            const raw = event.target.value.replace(/,/g, '');
+
+                            // อนุญาตเฉพาะตัวเลข และทศนิยมไม่เกิน 2 ตำแหน่ง
+                            if (!/^\d*(\.\d{0,2})?$/.test(raw)) {
+                              return;
+                            }
+
+                            updateForm('priceOil', raw);
+                          }}
+                          onBlur={() => {
+                            if (!form.priceOil) return;
+
+                            const value = Number(form.priceOil);
+
+                            if (Number.isFinite(value)) {
+                              updateForm('priceOil', value.toFixed(2));
+                            }
+                          }}
                           placeholder="เช่น 1,250.00"
-                          className={`${inputClass} pl-10 pr-14`}
+                          className={`${inputClass} pl-10 pr-16 text-base font-semibold`}
                         />
 
-                        <span className="text-muted-foreground pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-xs">
+                        <span className="text-muted-foreground pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-medium">
                           บาท
                         </span>
                       </div>

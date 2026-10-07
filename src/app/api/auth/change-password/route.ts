@@ -215,12 +215,27 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
+    // ========================================================
+    // COOKIE
+    // ========================================================
+
+    const requestUrl = new URL(request.url);
+
+    const forwardedProto = request.headers
+      .get('x-forwarded-proto')
+      ?.split(',')[0]
+      ?.trim()
+      .toLowerCase();
+
+    const isHttps =
+      requestUrl.protocol === 'https:' || forwardedProto === 'https';
+
     // แทน JWT เก่าที่ mustChangePassword=true
     response.cookies.set({
       name: 'auth_token',
       value: newToken,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isHttps,
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24,

@@ -12,7 +12,6 @@ import {
   Fuel,
   Gauge,
   Pencil,
-  Search,
   Trash2,
   UserRound,
   Wallet,
@@ -87,7 +86,7 @@ export default function ListOli() {
         !keyword ||
         [
           item.carCode,
-          item.carName,
+          item.carBrandSub,
           item.carBrand,
           item.licensePlate,
           item.driverName,
@@ -169,10 +168,6 @@ export default function ListOli() {
   const handleEdit = (item: CarOilItem) => {
     setEditingItem(item);
     setModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setModalOpen(false);
   };
 
   return (
@@ -257,30 +252,28 @@ export default function ListOli() {
                     {/* ================= CAR ================= */}
                     <td className="px-5 py-4">
                       <div className="flex items-start gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 shadow-sm dark:bg-blue-500/10 dark:text-blue-300">
                           <CarFront className="h-5 w-5" />
                         </div>
 
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                              {item.carName || '-'}
-                            </p>
-
-                            {item.carCode && (
-                              <span className="rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
-                                {item.carCode}
-                              </span>
-                            )}
-                          </div>
-
-                          <p className="mt-1 text-xs text-gray-500">
-                            {item.carBrand || '-'}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-bold text-gray-900 dark:text-white">
+                            {[item.carBrand, item.carBrandSub]
+                              .filter(Boolean)
+                              .join(' ') || 'ไม่ระบุข้อมูลรถ'}
                           </p>
 
-                          <span className="mt-1.5 inline-flex rounded-lg bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-700 dark:bg-white/10 dark:text-gray-300">
-                            ทะเบียน {item.licensePlate || '-'}
-                          </span>
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            {item.carCode && (
+                              <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
+                                รหัส {item.carCode}
+                              </span>
+                            )}
+
+                            <span className="rounded-lg bg-gray-100 px-2.5 py-1 text-[10px] font-semibold text-gray-700 dark:bg-white/10 dark:text-gray-300">
+                              ทะเบียน {item.licensePlate || '-'}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </td>

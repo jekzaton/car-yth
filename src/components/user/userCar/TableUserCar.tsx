@@ -17,7 +17,8 @@ import { useModal } from '@/hooks/useModal';
 
 import UserCarHeader from './UserCarHeader';
 import UserCarTable from './UserCarTable';
-import { UserCarItem, UserLevel, UserStatus } from '@/types/userCarType';
+import { UserCarItem, UserStatus } from '@/types/userCarType';
+import api from '@/lib/axios';
 
 const API_URL = '/api/users/user-car';
 
@@ -48,7 +49,7 @@ export default function TableUserCar() {
     try {
       setIsLoading(true);
 
-      const response = await axios.get(API_URL, {
+      const response = await api.get(API_URL, {
         params: {
           status: 'all',
           _t: Date.now(),
@@ -160,7 +161,7 @@ export default function TableUserCar() {
     try {
       setDeleting(true);
 
-      await axios.delete('/api/users/del', {
+      await api.delete('/api/users/del', {
         params: {
           id: selectedUser.id,
         },
@@ -216,7 +217,7 @@ export default function TableUserCar() {
     try {
       setUpdatingStatusId(selectedUser.id);
 
-      const response = await axios.patch(
+      const response = await api.patch(
         '/api/users/status',
         {
           id: selectedUser.id,

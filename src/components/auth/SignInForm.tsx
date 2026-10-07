@@ -4,15 +4,16 @@ import Input from '@/components/form/input/InputField';
 import Label from '@/components/form/Label';
 import Button from '@/components/ui/button/Button';
 import { EyeCloseIcon, EyeIcon } from '@/icons';
+import api from '@/lib/axios';
 import axios from 'axios';
 import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 
 export default function SignInForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [formData, setFormData] = useState({
     cid: '',
@@ -61,7 +62,7 @@ export default function SignInForm() {
     try {
       setIsSubmitting(true);
 
-      const response = await axios.post('/api/auth/signin', {
+      const response = await api.post('/api/auth/signin', {
         cid: formData.cid,
         password: formData.password,
       });
@@ -69,19 +70,40 @@ export default function SignInForm() {
       if (response.data.success) {
         toast.success('เข้าสู่ระบบสำเร็จ');
 
+        const mustChangePassword = response.data.mustChangePassword;
+        const statusLevel = response.data.user?.statusLevel;
+        const callbackUrl = searchParams.get('callbackUrl');
+
+        if (mustChangePassword) {
+          router.replace('/change-password');
+          return;
+        }
+
+        if (callbackUrl && callbackUrl.startsWith('/')) {
+          router.replace(callbackUrl);
+          return;
+        }
+
+        if (statusLevel === 'user') {
+          router.replace('/calendar');
+          return;
+        }
+
         router.replace('/dashboard');
-        router.refresh();
       }
-    } catch (error: any) {
-      toast.error(
-        error?.response?.data?.message ??
-          'เลขบัตรประชาชนหรือรหัสผ่านไม่ถูกต้อง',
-      );
+    } catch (error: unknown) {
+      if (axios.isAxiosError<{ message: string }>(error)) {
+        toast.error(
+          error.response?.data?.message ??
+            'เลขบัตรประชาชนหรือรหัสผ่านไม่ถูกต้อง',
+        );
+      } else {
+        toast.error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
-
   return (
     <div className="bg-linear-to-br flex min-h-screen w-full items-center justify-center from-sky-50 via-white to-emerald-50 p-6 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       <div className="w-full max-w-md rounded-2xl border border-gray-200/60 bg-white/70 p-8 shadow-2xl backdrop-blur-xl dark:border-gray-800/60 dark:bg-gray-900/60">
@@ -89,7 +111,7 @@ export default function SignInForm() {
         <div className="mb-8 text-center">
           <div className="mx-auto mb-3 flex h-20 w-20 items-center justify-center">
             <Image
-              src="/images/logo/yth_logo.png"
+              src={`${process.env.NEXT_PUBLIC_BASE_PATH}/images/logo/yth_logo.png`}
               alt="Hospital Logo"
               width={80}
               height={80}
@@ -157,7 +179,7 @@ export default function SignInForm() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
+        {/* <p className="mt-6 text-center text-sm text-gray-500">
           ยังไม่มีบัญชี?{' '}
           <Link
             href="/signup"
@@ -165,7 +187,7 @@ export default function SignInForm() {
           >
             สมัครสมาชิก
           </Link>
-        </p>
+        </p> */}
       </div>
     </div>
   );

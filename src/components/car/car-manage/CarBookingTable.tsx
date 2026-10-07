@@ -158,7 +158,10 @@ function BookingRow({
           {/* ================= CAR IMAGE ================= */}
           <div className="relative shrink-0">
             <div className="overflow-hidden rounded-2xl ring-1 ring-black/5 transition-all duration-200 group-hover:ring-orange-500/20 dark:ring-white/10">
-              <CarImageCell src={mainImage} alt={item.carName || 'car'} />
+              <CarImageCell
+                src={`${process.env.NEXT_PUBLIC_BASE_PATH}${mainImage}`}
+                alt={item.carBrandSub || 'car'}
+              />
             </div>
 
             {/* STATUS DOT */}
@@ -172,7 +175,7 @@ function BookingRow({
             {/* NAME + CODE */}
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-foreground truncate text-sm font-bold">
-                {item.carName || '-'}
+                {item.carBrandSub || '-'}
               </p>
 
               <span className="inline-flex shrink-0 items-center rounded-lg border border-orange-500/15 bg-orange-500/10 px-2 py-0.5 text-[10px] font-bold text-orange-700 dark:text-orange-300">

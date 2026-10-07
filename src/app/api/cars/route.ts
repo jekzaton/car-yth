@@ -21,11 +21,11 @@ export async function GET() {
         id: cars.id,
 
         carCode: cars.car_code,
-        carName: cars.car_name,
 
-        // Brand
         carBrandId: cars.car_brand_id,
         carBrand: car_brand.car_brand_name,
+
+        carBrandSub: cars.car_brand_sub,
 
         licensePlate: cars.license_plate,
         carImage: cars.car_image,
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
 
     const carCode = String(formData.get('carCode') ?? '').trim();
 
-    const carName = String(formData.get('carName') ?? '').trim();
+    const carBrandSub = String(formData.get('carBrandSub') ?? '').trim();
 
     const licensePlate = String(formData.get('licensePlate') ?? '').trim();
 
@@ -109,11 +109,11 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!carName) {
+    if (!carBrandSub) {
       return NextResponse.json(
         {
           success: false,
-          message: 'กรุณาระบุชื่อรถ',
+          message: 'กรุณาระบุรุ่นรถ',
         },
         {
           status: 400,
@@ -282,7 +282,7 @@ export async function POST(req: Request) {
     const insertResult = await db.insert(cars).values({
       car_code: carCode,
 
-      car_name: carName,
+      car_brand_sub: carBrandSub,
 
       // สำคัญ
       car_brand_id: carBrandId,
@@ -294,10 +294,6 @@ export async function POST(req: Request) {
       status,
     });
 
-    // ========================================================
-    // RESPONSE
-    // ========================================================
-
     return NextResponse.json(
       {
         success: true,
@@ -308,12 +304,9 @@ export async function POST(req: Request) {
           id: insertResult[0]?.insertId ?? null,
 
           carCode,
-
-          carName,
-
           carBrandId,
-
           carBrand: brandResult[0].name,
+          carBrandSub,
 
           licensePlate,
 

@@ -11,6 +11,7 @@ import { z } from 'zod';
 
 import Input from '@/components/form/input/InputField';
 import SearchSelect from '@/components/form/SearchSelect';
+import api from '@/lib/axios';
 
 type Department = {
   depId: number;
@@ -140,20 +141,20 @@ export default function EditUser({ userId }: EditUserProps) {
           positionResponse,
           systemResponse,
         ] = await Promise.all([
-          axios.get('/api/users/edit', {
+          api.get('/api/users/edit', {
             params: { id: userId },
             withCredentials: true,
           }),
 
-          axios.get('/api/departments', {
+          api.get('/api/departments', {
             withCredentials: true,
           }),
 
-          axios.get('/api/positions', {
+          api.get('/api/positions', {
             withCredentials: true,
           }),
 
-          axios.get('/api/systems', {
+          api.get('/api/systems', {
             withCredentials: true,
           }),
         ]);
@@ -287,7 +288,7 @@ export default function EditUser({ userId }: EditUserProps) {
           : {}),
       };
 
-      const response = await axios.put('/api/users/edit', payload, {
+      const response = await api.put('/api/users/edit', payload, {
         withCredentials: true,
       });
 

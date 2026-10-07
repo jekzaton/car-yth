@@ -4,13 +4,15 @@ import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Upload, Save, ArrowLeft, Star } from 'lucide-react';
+import api from '@/lib/axios';
+import Image from 'next/image';
 
 type CarStatus = 'active' | 'inactive';
 
 type CarForm = {
   carCode: string;
-  carName: string;
-  carBrand: string;
+  carBrandSub: string;
+  carBrandId: string;
   licensePlate: string;
   status: CarStatus;
   carImage: string[];
@@ -18,6 +20,10 @@ type CarForm = {
 type PreviewImage = {
   url: string;
   isNew: boolean;
+};
+type CarBrandItem = {
+  id: number;
+  carBrandName: string;
 };
 
 export default function EditCar() {
@@ -29,12 +35,14 @@ export default function EditCar() {
 
   const [form, setForm] = useState<CarForm>({
     carCode: '',
-    carName: '',
-    carBrand: '',
+    carBrandSub: '',
+    carBrandId: '',
     licensePlate: '',
     status: 'active',
     carImage: [],
   });
+
+  const [carBrands, setCarBrands] = useState<CarBrandItem[]>([]);
 
   const [previews, setPreviews] = useState<PreviewImage[]>([]);
   const [coverImage, setCoverImage] = useState<string | null>(null);
@@ -44,7 +52,7 @@ export default function EditCar() {
   useEffect(() => {
     const fetchCar = async () => {
       try {
-        const res = await axios.get(`/api/cars/edit/${params?.id}`);
+        const res = await api.get(`/api/cars/edit/${params?.id}`);
         const data = res.data.data;
 
         let images: string[] = [];
@@ -65,14 +73,13 @@ export default function EditCar() {
         }
 
         setForm({
-          carCode: data.carCode,
-          carName: data.carName,
-          carBrand: data.carBrand,
-          licensePlate: data.licensePlate,
-          status: data.status,
+          carCode: data.carCode ?? '',
+          carBrandSub: data.carBrandSub ?? '',
+          carBrandId: String(data.carBrandId ?? ''),
+          licensePlate: data.licensePlate ?? '',
+          status: data.status ?? 'active',
           carImage: images,
         });
-
         setPreviews(
           images.map((img) => ({
             url: img,
@@ -86,6 +93,22 @@ export default function EditCar() {
     };
     fetchCar();
   }, [params?.id]);
+
+  useEffect(() => {
+    const loadCarBrands = async () => {
+      try {
+        const res = await api.get('/api/cars/car-brand');
+
+        const data = Array.isArray(res.data?.data) ? res.data.data : [];
+
+        setCarBrands(data);
+      } catch (error) {
+        console.error('Load car brands error:', error);
+      }
+    };
+
+    loadCarBrands();
+  }, []);
 
   // ================= HANDLE CHANGE =================
   const handleChange = (
@@ -122,6 +145,26 @@ export default function EditCar() {
 
   // ================= SAVE =================
   const handleSave = async () => {
+    if (!form.carCode.trim()) {
+      alert('กรุณาระบุรหัสรถ');
+      return;
+    }
+
+    if (!form.carBrandSub.trim()) {
+      alert('กรุณาระบุรุ่นรถ');
+      return;
+    }
+
+    if (!form.carBrandId) {
+      alert('กรุณาเลือกยี่ห้อรถ');
+      return;
+    }
+
+    if (!form.licensePlate.trim()) {
+      alert('กรุณาระบุทะเบียนรถ');
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -135,7 +178,7 @@ export default function EditCar() {
           fd.append('carImages', file);
         });
 
-        const upload = await axios.post('/api/cars/upload', fd);
+        const upload = await api.post('/api/cars/upload', fd);
 
         uploaded = Array.isArray(upload.data.uploaded)
           ? upload.data.uploaded
@@ -186,11 +229,11 @@ export default function EditCar() {
         images: orderedImages,
       };
 
-      await axios.put(`/api/cars/edit/${params?.id}`, {
-        carCode: form.carCode,
-        carName: form.carName,
-        carBrand: form.carBrand,
-        licensePlate: form.licensePlate,
+      await api.put(`/api/cars/edit/${params?.id}`, {
+        carCode: form.carCode.trim(),
+        carBrandSub: form.carBrandSub.trim(),
+        carBrandId: Number(form.carBrandId),
+        licensePlate: form.licensePlate.trim(),
         status: form.status,
         carImage: JSON.stringify(carImageData),
       });
@@ -211,6 +254,25 @@ export default function EditCar() {
   if (loading) {
     return <div className="p-10 text-center text-gray-500">Loading...</div>;
   }
+
+  const getImageSrc = (src: string) => {
+    if (
+      src.startsWith('http://') ||
+      src.startsWith('https://') ||
+      src.startsWith('blob:') ||
+      src.startsWith('data:')
+    ) {
+      return src;
+    }
+
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
+    if (basePath && src.startsWith(`${basePath}/`)) {
+      return src;
+    }
+
+    return `${basePath}${src.startsWith('/') ? src : `/${src}`}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -239,52 +301,124 @@ export default function EditCar() {
       {/* FORM CARD */}
       <div className="rounded-2xl border border-white/10 bg-white p-6 shadow-sm dark:bg-white/5">
         {/* <div className="grid grid-cols-1 gap-4 md:grid-cols-2"> */}
-        <div className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-6">
-          <input
-            name="carCode"
-            value={form.carCode}
-            onChange={handleChange}
-            placeholder="รหัสรถ"
-            className="rounded-xl border px-4 py-2"
-          />
+        <div className="mt-6 space-y-6">
+          {/* ================= BASIC INFO ================= */}
+          <div className="dark:bg-white/3 rounded-2xl border border-gray-200 bg-gray-50/60 p-5 dark:border-white/10">
+            <div className="mb-5">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                ข้อมูลรถ
+              </h3>
 
-          <input
-            name="carName"
-            value={form.carName}
-            onChange={handleChange}
-            placeholder="ชื่อรถ"
-            className="rounded-xl border px-4 py-2"
-          />
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                ระบุข้อมูลหลักของยานพาหนะให้ครบถ้วน
+              </p>
+            </div>
 
-          <input
-            name="carBrand"
-            value={form.carBrand}
-            onChange={handleChange}
-            placeholder="ยี่ห้อ"
-            className="rounded-xl border px-4 py-2"
-          />
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              {/* CAR CODE */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200">
+                  รหัสรถ
+                </label>
 
-          <input
-            name="licensePlate"
-            value={form.licensePlate}
-            onChange={handleChange}
-            placeholder="ทะเบียน"
-            className="rounded-xl border px-4 py-2"
-          />
+                <input
+                  name="carCode"
+                  value={form.carCode}
+                  onChange={handleChange}
+                  placeholder="เช่น CAR-001"
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-800 shadow-sm outline-none transition placeholder:text-gray-400 hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-white/10 dark:bg-gray-900 dark:text-white"
+                />
 
-          {/* STATUS */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              สถานะการใช้งาน
-            </label>
+                <p className="mt-1.5 text-xs text-gray-400">
+                  รหัสสำหรับใช้อ้างอิงรถภายในระบบ
+                </p>
+              </div>
 
-            <div className="mt-2 flex gap-4">
-              {/* Active */}
+              {/* CAR BRAND SUB */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200">
+                  รุ่นรถ / รุ่นย่อย
+                </label>
+
+                <input
+                  name="carBrandSub"
+                  value={form.carBrandSub}
+                  onChange={handleChange}
+                  placeholder="เช่น HR-V e:HEV E"
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-800 shadow-sm outline-none transition placeholder:text-gray-400 hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-white/10 dark:bg-gray-900 dark:text-white"
+                />
+
+                <p className="mt-1.5 text-xs text-gray-400">
+                  ระบุชื่อรุ่นหรือรุ่นย่อยของรถ
+                </p>
+              </div>
+
+              {/* CAR BRAND */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200">
+                  ยี่ห้อรถ
+                </label>
+
+                <select
+                  name="carBrandId"
+                  value={form.carBrandId}
+                  onChange={handleChange}
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-800 shadow-sm outline-none transition hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-white/10 dark:bg-gray-900 dark:text-white"
+                >
+                  <option value="">เลือกยี่ห้อรถ</option>
+
+                  {carBrands.map((brand) => (
+                    <option key={brand.id} value={String(brand.id)}>
+                      {brand.carBrandName}
+                    </option>
+                  ))}
+                </select>
+
+                <p className="mt-1.5 text-xs text-gray-400">
+                  เลือกยี่ห้อรถจากรายการ
+                </p>
+              </div>
+
+              {/* LICENSE */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200">
+                  เลขทะเบียนรถ
+                </label>
+
+                <input
+                  name="licensePlate"
+                  value={form.licensePlate}
+                  onChange={handleChange}
+                  placeholder="เช่น กข 5482"
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-800 shadow-sm outline-none transition placeholder:text-gray-400 hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-white/10 dark:bg-gray-900 dark:text-white"
+                />
+
+                <p className="mt-1.5 text-xs text-gray-400">
+                  ระบุเลขทะเบียนรถตามข้อมูลจริง
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* ================= STATUS ================= */}
+          <div className="dark:bg-white/3 rounded-2xl border border-gray-200 bg-gray-50/60 p-5 dark:border-white/10">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                สถานะการใช้งาน
+              </h3>
+
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                กำหนดว่ารถคันนี้สามารถนำไปใช้งานและจองได้หรือไม่
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-2xl">
+              {/* ACTIVE */}
               <label
-                className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${
+                className={`relative flex cursor-pointer items-center gap-4 rounded-2xl border p-4 transition-all ${
                   form.status === 'active'
-                    ? 'border-green-500 bg-green-50 ring-2 ring-green-200 dark:bg-green-500/10'
-                    : 'border-gray-200 hover:border-green-300'
+                    ? 'border-green-500 bg-green-50 shadow-sm ring-2 ring-green-500/10 dark:bg-green-500/10'
+                    : 'border-gray-200 bg-white hover:border-green-300 hover:bg-green-50/40 dark:border-white/10 dark:bg-gray-900'
                 }`}
               >
                 <input
@@ -293,47 +427,46 @@ export default function EditCar() {
                   value="active"
                   checked={form.status === 'active'}
                   onChange={handleChange}
-                  className="hidden"
+                  className="sr-only"
                 />
 
                 <div
-                  className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
                     form.status === 'active'
-                      ? 'border-green-600 bg-green-600'
-                      : 'border-gray-300'
+                      ? 'bg-green-600 text-white'
+                      : 'bg-gray-100 text-gray-400 dark:bg-gray-800'
                   }`}
                 >
-                  {form.status === 'active' && (
-                    <svg
-                      className="h-3 w-3 text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={3}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  )}
+                  {form.status === 'active' ? '✓' : '○'}
                 </div>
 
-                <div>
-                  <p className="font-medium text-green-700 dark:text-green-300">
+                <div className="min-w-0">
+                  <p
+                    className={`text-sm font-semibold ${
+                      form.status === 'active'
+                        ? 'text-green-700 dark:text-green-300'
+                        : 'text-gray-700 dark:text-gray-200'
+                    }`}
+                  >
                     ใช้งาน
                   </p>
-                  <p className="text-xs text-gray-500">รถพร้อมใช้งาน</p>
+
+                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    รถพร้อมสำหรับการจองและใช้งาน
+                  </p>
                 </div>
+
+                {form.status === 'active' && (
+                  <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-green-500" />
+                )}
               </label>
 
-              {/* Inactive */}
+              {/* INACTIVE */}
               <label
-                className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${
+                className={`relative flex cursor-pointer items-center gap-4 rounded-2xl border p-4 transition-all ${
                   form.status === 'inactive'
-                    ? 'border-red-500 bg-red-50 ring-2 ring-red-200 dark:bg-red-500/10'
-                    : 'border-gray-200 hover:border-red-300'
+                    ? 'border-red-500 bg-red-50 shadow-sm ring-2 ring-red-500/10 dark:bg-red-500/10'
+                    : 'border-gray-200 bg-white hover:border-red-300 hover:bg-red-50/40 dark:border-white/10 dark:bg-gray-900'
                 }`}
               >
                 <input
@@ -342,39 +475,38 @@ export default function EditCar() {
                   value="inactive"
                   checked={form.status === 'inactive'}
                   onChange={handleChange}
-                  className="hidden"
+                  className="sr-only"
                 />
 
                 <div
-                  className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
                     form.status === 'inactive'
-                      ? 'border-red-600 bg-red-600'
-                      : 'border-gray-300'
+                      ? 'bg-red-600 text-white'
+                      : 'bg-gray-100 text-gray-400 dark:bg-gray-800'
                   }`}
                 >
-                  {form.status === 'inactive' && (
-                    <svg
-                      className="h-3 w-3 text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={3}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  )}
+                  {form.status === 'inactive' ? '✓' : '○'}
                 </div>
 
-                <div>
-                  <p className="font-medium text-red-700 dark:text-red-300">
+                <div className="min-w-0">
+                  <p
+                    className={`text-sm font-semibold ${
+                      form.status === 'inactive'
+                        ? 'text-red-600 dark:text-red-300'
+                        : 'text-gray-700 dark:text-gray-200'
+                    }`}
+                  >
                     ไม่ใช้งาน
                   </p>
-                  <p className="text-xs text-gray-500">รถถูกปิดการใช้งาน</p>
+
+                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    รถจะไม่สามารถนำไปเลือกจองได้
+                  </p>
                 </div>
+
+                {form.status === 'inactive' && (
+                  <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-red-500" />
+                )}
               </label>
             </div>
           </div>
@@ -382,120 +514,166 @@ export default function EditCar() {
 
         {/* IMAGE UPLOAD */}
         <div className="mt-6">
-          <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed p-4 hover:bg-gray-50 dark:hover:bg-white/5">
-            <Upload className="h-4 w-4" />
-            อัปโหลดรูปเพิ่มเติม
+          {/* UPLOAD BUTTON */}
+          <label className="group flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-dashed border-blue-200 bg-blue-50/50 px-4 py-4 transition hover:border-blue-400 hover:bg-blue-50 dark:border-blue-500/20 dark:bg-blue-500/5 dark:hover:bg-blue-500/10">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm transition group-hover:scale-105">
+                <Upload className="h-5 w-5" />
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-gray-800 dark:text-white">
+                  อัปโหลดรูปเพิ่มเติม
+                </p>
+
+                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  รองรับ JPG, JPEG, PNG และเลือกได้หลายรูป
+                </p>
+              </div>
+            </div>
+
+            <span className="rounded-xl bg-white px-4 py-2 text-xs font-semibold text-blue-600 shadow-sm transition group-hover:bg-blue-600 group-hover:text-white dark:bg-white/5">
+              เลือกรูป
+            </span>
+
             <input
               type="file"
               multiple
+              accept="image/jpeg,image/jpg,image/png,image/webp"
               className="hidden"
               onChange={handleFiles}
             />
           </label>
 
           {/* PREVIEW */}
-          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-            {previews.map((img, i) => (
-              <div
-                key={img.url}
-                className={`h-320px group relative flex flex-col overflow-hidden rounded-3xl border bg-white transition-all duration-300 ${
-                  coverImage === img.url
-                    ? 'border-blue-500 shadow-2xl ring-2 ring-blue-100'
-                    : 'border-gray-200 shadow hover:-translate-y-1 hover:shadow-xl'
-                }`}
-              >
-                {/* Image */}
-                <div className="aspect-4/3 relative overflow-hidden bg-gray-100">
-                  <img
-                    src={img.url}
-                    alt={`Car ${i + 1}`}
-                    onClick={() => setCoverImage(img.url)}
-                    className="h-full w-full cursor-pointer object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
+          <div className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(230px,260px))] gap-5">
+            {previews.map((img, i) => {
+              const isCover = coverImage === img.url;
 
-                  {/* Overlay */}
-                  <div className="bg-linear-to-t absolute inset-0 from-black/30 via-transparent to-transparent opacity-0 transition group-hover:opacity-100" />
-
-                  {/* Cover Badge */}
-                  {coverImage === img.url && (
-                    <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white shadow-lg">
-                      <Star
-                        fill="currentColor"
-                        className="h-3 w-3 text-yellow-500"
+              return (
+                <div
+                  key={img.url}
+                  className={`group relative overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg dark:bg-gray-900 ${
+                    isCover
+                      ? 'border-blue-500 ring-2 ring-blue-500/20'
+                      : 'border-gray-200 dark:border-white/10'
+                  }`}
+                >
+                  {/* IMAGE */}
+                  <div className="aspect-16/10 relative overflow-hidden bg-gray-50 dark:bg-gray-800">
+                    <button
+                      type="button"
+                      onClick={() => setCoverImage(img.url)}
+                      className="relative block h-full w-full"
+                      aria-label={`เลือกรูปที่ ${i + 1} เป็นรูปหลัก`}
+                    >
+                      <Image
+                        src={getImageSrc(img.url)}
+                        alt={`รูปรถยนต์ ${i + 1}`}
+                        fill
+                        unoptimized
+                        sizes="260px"
+                        className="object-contain p-3 transition-transform duration-500 group-hover:scale-[1.03]"
                       />
-                      รูปหลัก
-                    </div>
-                  )}
 
-                  {/* Delete */}
-                  <button
-                    onClick={() => {
-                      const removedImage = previews[i];
-                      const updatedPreviews = previews.filter(
-                        (_, idx) => idx !== i,
-                      );
+                      <div className="bg-linear-to-t pointer-events-none absolute inset-x-0 bottom-0 h-20 from-black/35 to-transparent" />
+                    </button>
 
-                      if (removedImage.isNew) {
-                        const newImageIndex = previews
-                          .slice(0, i)
-                          .filter((item) => item.isNew).length;
+                    {isCover && (
+                      <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-[11px] font-semibold text-white shadow-md">
+                        <Star
+                          fill="currentColor"
+                          className="h-3.5 w-3.5 text-yellow-300"
+                        />
+                        รูปหลัก
+                      </div>
+                    )}
 
-                        setFiles((prev) =>
-                          prev.filter(
-                            (_, fileIndex) => fileIndex !== newImageIndex,
-                          ),
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+
+                        const removedImage = previews[i];
+
+                        const updatedPreviews = previews.filter(
+                          (_, idx) => idx !== i,
                         );
 
-                        URL.revokeObjectURL(removedImage.url);
-                      }
+                        if (removedImage.isNew) {
+                          const newImageIndex = previews
+                            .slice(0, i)
+                            .filter((item) => item.isNew).length;
 
-                      setPreviews(updatedPreviews);
+                          setFiles((prev) =>
+                            prev.filter(
+                              (_, fileIndex) => fileIndex !== newImageIndex,
+                            ),
+                          );
 
-                      setForm((prev) => ({
-                        ...prev,
-                        carImage: updatedPreviews
-                          .filter((item) => !item.isNew)
-                          .map((item) => item.url),
-                      }));
+                          URL.revokeObjectURL(removedImage.url);
+                        }
 
-                      if (coverImage === removedImage.url) {
-                        setCoverImage(updatedPreviews[0]?.url ?? null);
-                      }
-                    }}
-                    className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-red-500 shadow transition-all hover:scale-110 hover:bg-red-500 hover:text-white"
-                  >
-                    ✕
-                  </button>
-                </div>
+                        setPreviews(updatedPreviews);
 
-                {/* Footer */}
-                <div className="flex flex-1 flex-col justify-between p-5">
-                  <div>
-                    <p className="text-base font-semibold">รูปที่ {i + 1}</p>
+                        setForm((prev) => ({
+                          ...prev,
+                          carImage: updatedPreviews
+                            .filter((item) => !item.isNew)
+                            .map((item) => item.url),
+                        }));
 
-                    <p className="mt-1 text-sm text-gray-500">
-                      {coverImage === img.url
-                        ? 'กำลังใช้งานเป็นรูปหลัก'
-                        : 'คลิกเพื่อเลือกเป็นรูปหลัก'}
-                    </p>
+                        if (coverImage === removedImage.url) {
+                          setCoverImage(updatedPreviews[0]?.url ?? null);
+                        }
+                      }}
+                      aria-label={`ลบรูปที่ ${i + 1}`}
+                      className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border border-white/60 bg-white/90 text-sm font-bold text-red-500 shadow-md backdrop-blur transition hover:scale-110 hover:bg-red-500 hover:text-white active:scale-95 dark:border-white/10 dark:bg-gray-900/90"
+                    >
+                      ×
+                    </button>
+
+                    <div className="pointer-events-none absolute bottom-3 left-3 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur">
+                      รูปที่ {i + 1}
+                    </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setCoverImage(img.url)}
-                    className={`mt-5 w-full rounded-xl py-3 text-sm font-semibold transition ${
-                      coverImage === img.url
-                        ? 'bg-linear-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
-                        : 'border border-gray-200 bg-white hover:border-blue-500 hover:bg-blue-50'
-                    }`}
-                  >
-                    {coverImage === img.url
-                      ? '✓ เลือกแล้ว'
-                      : 'เลือกเป็นรูปหลัก'}
-                  </button>
+                  {/* FOOTER */}
+                  <div className="min-h-21.5 flex items-center justify-between gap-3 p-4">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                        รูปรถ #{i + 1}
+                      </p>
+
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
+                        {isCover
+                          ? 'กำลังใช้เป็นรูปหลัก'
+                          : 'คลิกที่รูปหรือปุ่มเพื่อเลือกเป็นรูปหลัก'}
+                      </p>
+                    </div>
+
+                    {isCover ? (
+                      <div className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-2 text-xs font-semibold text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
+                        <Star fill="currentColor" className="h-3.5 w-3.5" />
+                        เลือกแล้ว
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setCoverImage(img.url)}
+                        className="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
+                      >
+                        ตั้งเป็นรูปหลัก
+                      </button>
+                    )}
+                  </div>
+
+                  {isCover && (
+                    <div className="bg-linear-to-r absolute inset-x-0 bottom-0 h-1 from-blue-500 via-indigo-500 to-purple-500" />
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

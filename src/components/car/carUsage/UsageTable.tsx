@@ -14,7 +14,6 @@ import {
   Gauge,
   MapPin,
   Pencil,
-  Trash2,
   UserRound,
 } from 'lucide-react';
 
@@ -49,7 +48,6 @@ export default function UsageTable({
 
   onCreateUsage,
   onEdit,
-  onDelete,
 }: UsageTableProps) {
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm dark:border-white/10 dark:bg-gray-900">
@@ -143,11 +141,13 @@ export default function UsageTable({
 
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                            {item.carName || '-'}
+                            {[item.carBrand, item.carBrandSub]
+                              .filter(Boolean)
+                              .join(' ') || '-'}
                           </p>
 
-                          <p className="mt-1 text-xs text-gray-500">
-                            {item.carBrand || '-'}
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            รหัสรถ: {item.carCode || '-'}
                           </p>
 
                           <span className="mt-1 inline-flex rounded-lg bg-gray-100 px-2 py-1 text-[11px] font-semibold text-gray-700 dark:bg-white/10 dark:text-gray-300">

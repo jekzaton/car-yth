@@ -39,7 +39,7 @@ export type CarBookingItem = {
   bookingName: string;
 
   carCode: string;
-  carName?: string | null;
+  carBrandSub?: string | null;
   carBrand?: string | null;
   licensePlate?: string | null;
   carImage?: unknown;

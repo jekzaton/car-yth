@@ -82,7 +82,7 @@ export async function GET() {
 
         carCode: car_booking.carCode,
 
-        carName: cars.car_name,
+        carBrandSub: cars.car_brand_sub,
 
         carBrandId: cars.car_brand_id,
 
@@ -208,7 +208,7 @@ export async function GET() {
 
       carCode: item.carCode,
 
-      carName: item.carName,
+      carBrandSub: item.carBrandSub,
 
       carBrandId: item.carBrandId,
 

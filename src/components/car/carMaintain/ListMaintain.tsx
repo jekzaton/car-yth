@@ -73,7 +73,7 @@ export default function ListMaintain() {
 
       const searchable = [
         item.carCode,
-        item.carName,
+        item.carBrandSub,
         item.carBrand,
         item.licensePlate,
         item.userCode,

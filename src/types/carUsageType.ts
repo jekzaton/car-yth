@@ -5,7 +5,7 @@ export type CarUsageItem = {
 
   carCode: string;
 
-  carName?: string | null;
+  carBrandSub?: string | null;
   carBrand?: string | null;
   licensePlate?: string | null;
 

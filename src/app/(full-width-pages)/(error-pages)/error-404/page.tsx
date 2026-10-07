@@ -1,53 +1,46 @@
-import GridShape from "@/components/common/GridShape";
-import { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
-import React from "react";
+import GridShape from '@/components/common/GridShape';
+import { Metadata } from 'next';
+import Link from 'next/link';
+import React from 'react';
 
 export const metadata: Metadata = {
-  title: "Next.js Error 404 | TailAdmin - Next.js Dashboard Template",
-  description:
-    "This is Next.js Error 404 page for TailAdmin - Next.js Tailwind CSS Admin Dashboard Template",
+  title: 'ไม่พบหน้าที่ต้องการ | CAR-YTH',
+  description: 'ไม่พบหน้าที่คุณกำลังค้นหาในระบบจองรถ โรงพยาบาลยางตลาด',
 };
 
 export default function Error404() {
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen p-6 overflow-hidden z-1">
+    <div className="z-1 relative flex min-h-screen flex-col items-center justify-center overflow-hidden p-6">
       <GridShape />
-      <div className="mx-auto w-full max-w-[242px] text-center sm:max-w-[472px]">
-        <h1 className="mb-8 font-bold text-gray-800 text-title-md dark:text-white/90 xl:text-title-2xl">
-          ERROR
+
+      <div className="max-w-125 mx-auto w-full text-center">
+        {/* Error Code */}
+        <h1 className="mb-3 text-7xl font-bold text-blue-600 sm:text-8xl dark:text-blue-400">
+          404
         </h1>
 
-        <Image
-          src="/images/error/404.svg"
-          alt="404"
-          className="dark:hidden"
-          width={472}
-          height={152}
-        />
-        <Image
-          src="/images/error/404-dark.svg"
-          alt="404"
-          className="hidden dark:block"
-          width={472}
-          height={152}
-        />
+        {/* Title */}
+        <h2 className="mb-3 text-2xl font-bold text-gray-800 sm:text-3xl dark:text-white/90">
+          ไม่พบหน้าที่คุณต้องการ
+        </h2>
 
-        <p className="mt-10 mb-6 text-base text-gray-700 dark:text-gray-400 sm:text-lg">
-          We can’t seem to find the page you are looking for!
+        {/* Description */}
+        <p className="mb-8 text-base text-gray-500 sm:text-lg dark:text-gray-400">
+          หน้าที่คุณกำลังค้นหาอาจถูกย้าย ลบออก หรือ URL ที่เรียกใช้งานไม่ถูกต้อง
         </p>
 
+        {/* Back Home */}
         <Link
           href="/"
-          className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-5 py-3.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
+          className="shadow-theme-xs inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3.5 text-sm font-medium text-white transition hover:bg-blue-700"
         >
-          Back to Home Page
+          กลับหน้าหลัก
         </Link>
       </div>
-      {/* <!-- Footer --> */}
-      <p className="absolute text-sm text-center text-gray-500 -translate-x-1/2 bottom-6 left-1/2 dark:text-gray-400">
-        &copy; {new Date().getFullYear()} - TailAdmin
+
+      {/* Footer */}
+      <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-center text-sm text-gray-500 dark:text-gray-400">
+        &copy; {new Date().getFullYear()} CAR-YTH | Yangtalad Hospital
       </p>
     </div>
   );

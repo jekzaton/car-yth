@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import TableCarType, { CarType } from './TableCarType';
 import { toast } from 'react-toastify';
 import { Modal } from '@/components/ui/modal';
+import api from '@/lib/axios';
 
 type CarTypeForm = {
   typeName: string;
@@ -42,7 +43,7 @@ export default function ListCarType() {
     try {
       setLoading(true);
 
-      const res = await axios.get('/api/cars/type', {
+      const res = await api.get('/api/cars/type', {
         params: {
           _t: Date.now(),
         },
@@ -102,10 +103,10 @@ export default function ListCarType() {
       };
 
       if (editingId !== null) {
-        await axios.put(`/api/cars/type/${editingId}`, payload);
+        await api.put(`/api/cars/type/${editingId}`, payload);
         toast.success('อัพเดทประเภทรถสำเร็จ');
       } else {
-        await axios.post('/api/cars/type', payload);
+        await api.post('/api/cars/type', payload);
         toast.success('เพิ่มประเภทรถสำเร็จ');
       }
 
@@ -140,7 +141,7 @@ export default function ListCarType() {
     try {
       setDeletingId(deleteItem.typeCarId);
 
-      await axios.delete(`/api/cars/type/${deleteItem.typeCarId}`);
+      await api.delete(`/api/cars/type/${deleteItem.typeCarId}`);
 
       toast.success(`ลบ "${deleteItem.typeName}" เรียบร้อยแล้ว`);
 

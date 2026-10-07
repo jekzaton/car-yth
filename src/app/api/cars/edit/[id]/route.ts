@@ -136,7 +136,7 @@ export async function GET(req: NextRequest, { params }: EditProps) {
       .select({
         id: cars.id,
         carCode: cars.car_code,
-        carName: cars.car_name,
+        carBrandSub: cars.car_brand_sub,
 
         carBrandId: cars.car_brand_id,
         carBrand: car_brand.car_brand_name,
@@ -212,7 +212,7 @@ export async function PUT(req: Request, { params }: EditProps) {
     const body = await req.json();
 
     const carCode = String(body.carCode ?? '').trim();
-    const carName = String(body.carName ?? '').trim();
+    const carBrandSub = String(body.carBrandSub ?? '').trim();
     const carBrandId = Number(body.carBrandId);
     const licensePlate = String(body.licensePlate ?? '').trim();
     const status = body.status === 'inactive' ? 'inactive' : 'active';
@@ -220,7 +220,7 @@ export async function PUT(req: Request, { params }: EditProps) {
 
     if (
       !carCode ||
-      !carName ||
+      !carBrandSub ||
       !Number.isInteger(carBrandId) ||
       carBrandId <= 0 ||
       !licensePlate
@@ -303,7 +303,7 @@ export async function PUT(req: Request, { params }: EditProps) {
       .update(cars)
       .set({
         car_code: carCode,
-        car_name: carName,
+        car_brand_sub: carBrandSub,
         car_brand_id: carBrandId,
         license_plate: licensePlate,
         car_image: JSON.stringify(newImageData),
@@ -335,7 +335,7 @@ export async function PUT(req: Request, { params }: EditProps) {
       data: {
         id: carId,
         carCode,
-        carName,
+        carBrandSub,
         carBrandId,
         licensePlate,
         carImage: newImageData,

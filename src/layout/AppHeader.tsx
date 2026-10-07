@@ -1,6 +1,5 @@
 'use client';
 import { ThemeToggleButton } from '@/components/common/ThemeToggleButton';
-import NotificationDropdown from '@/components/header/NotificationDropdown';
 import UserDropdown from '@/components/header/UserDropdown';
 import { useSidebar } from '@/context/SidebarContext';
 import Image from 'next/image';
@@ -21,7 +20,7 @@ const AppHeader: React.FC = () => {
   };
 
   const toggleApplicationMenu = () => {
-    setApplicationMenuOpen(!isApplicationMenuOpen);
+    setApplicationMenuOpen((current) => !current);
   };
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -41,18 +40,23 @@ const AppHeader: React.FC = () => {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 flex w-full border-gray-200 bg-white lg:border-b dark:border-gray-800 dark:bg-gray-900">
-      <div className="flex grow flex-col items-center justify-between lg:flex-row lg:px-6">
-        <div className="flex w-full items-center justify-between gap-2 border-b border-gray-200 px-3 py-3 sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-4 dark:border-gray-800">
+    <header className="supports-backdrop-filter:bg-white/80 dark:supports-backdrop-filter:bg-gray-900/80 sticky top-0 z-40 w-full border-b border-gray-200/80 bg-white/95 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">
+      <div className="lg:min-h-18 mx-auto flex min-h-16 w-full items-center justify-between gap-3 px-3 sm:px-4 lg:px-5 xl:px-6">
+        {/* =====================================================
+          LEFT
+      ===================================================== */}
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          {/* SIDEBAR TOGGLE */}
           <button
-            className="z-99999 h-10 w-10 items-center justify-center rounded-lg border-gray-200 text-gray-500 lg:flex lg:h-11 lg:w-11 lg:border dark:border-gray-800 dark:text-gray-400"
+            type="button"
             onClick={handleToggle}
             aria-label="Toggle Sidebar"
+            className="group flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 shadow-sm transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 sm:h-11 sm:w-11 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:border-blue-500/30 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
           >
             {isMobileOpen ? (
               <svg
-                width="24"
-                height="24"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -66,8 +70,8 @@ const AppHeader: React.FC = () => {
               </svg>
             ) : (
               <svg
-                width="16"
-                height="12"
+                width="18"
+                height="14"
                 viewBox="0 0 16 12"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -80,60 +84,80 @@ const AppHeader: React.FC = () => {
                 />
               </svg>
             )}
-            {/* Cross Icon */}
           </button>
 
-          <Link href="/" className="lg:hidden">
+          {/* MOBILE LOGO */}
+          <Link href="/" className="flex min-w-0 items-center lg:hidden">
             <Image
               width={154}
               height={32}
-              className="h-8 w-auto dark:hidden"
-              src="/images/logo/logo.svg"
-              alt="Logo"
+              className="max-w-33.75 sm:max-w-38.5 h-7 w-auto object-contain sm:h-8 dark:hidden"
+              src={`${process.env.NEXT_PUBLIC_BASE_PATH}/images/logo/logo.svg`}
+              alt="CAR-YTH"
+              priority
             />
+
             <Image
               width={154}
               height={32}
-              className="hidden h-8 w-auto dark:block"
-              src="/images/logo/logo-dark.svg"
-              alt="Logo"
+              className="max-w-33.75 sm:max-w-38.5 hidden h-7 w-auto object-contain sm:h-8 dark:block"
+              src={`${process.env.NEXT_PUBLIC_BASE_PATH}/images/logo/logo-dark.svg`}
+              alt="CAR-YTH"
+              priority
             />
           </Link>
-
-          <button
-            onClick={toggleApplicationMenu}
-            className="z-99999 flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 lg:hidden dark:text-gray-400 dark:hover:bg-gray-800"
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M5.99902 10.4951C6.82745 10.4951 7.49902 11.1667 7.49902 11.9951V12.0051C7.49902 12.8335 6.82745 13.5051 5.99902 13.5051C5.1706 13.5051 4.49902 12.8335 4.49902 12.0051V11.9951C4.49902 11.1667 5.1706 10.4951 5.99902 10.4951ZM17.999 10.4951C18.8275 10.4951 19.499 11.1667 19.499 11.9951V12.0051C19.499 12.8335 18.8275 13.5051 17.999 13.5051C17.1706 13.5051 16.499 12.8335 16.499 12.0051V11.9951C16.499 11.1667 17.1706 10.4951 17.999 10.4951ZM13.499 11.9951C13.499 11.1667 12.8275 10.4951 11.999 10.4951C11.1706 10.4951 10.499 11.1667 10.499 11.9951V12.0051C10.499 12.8335 11.1706 13.5051 11.999 13.5051C12.8275 13.5051 13.499 12.8335 13.499 12.0051V11.9951Z"
-                fill="currentColor"
-              />
-            </svg>
-          </button>
         </div>
-        <div
-          className={`${
-            isApplicationMenuOpen ? 'flex' : 'hidden'
-          } shadow-theme-md w-full items-center justify-between gap-4 px-5 py-4 lg:flex lg:justify-end lg:px-0 lg:shadow-none`}
-        >
-          <div className="2xsm:gap-3 flex items-center gap-2">
-            {/* <!-- Dark Mode Toggler --> */}
-            <ThemeToggleButton />
-            {/* <!-- Dark Mode Toggler --> */}
 
-            {/* <NotificationDropdown /> */}
-            {/* <!-- Notification Menu Area --> */}
-          </div>
-          {/* <!-- User Area --> */}
+        {/* =====================================================
+          RIGHT DESKTOP
+      ===================================================== */}
+        <div className="hidden items-center gap-2 lg:flex">
+          <ThemeToggleButton />
+
+          <div className="mx-1 h-8 w-px bg-gray-200 dark:bg-gray-700" />
+
+          <UserDropdown />
+        </div>
+
+        {/* =====================================================
+          MOBILE ACTION
+      ===================================================== */}
+        <button
+          type="button"
+          onClick={toggleApplicationMenu}
+          aria-label="เปิดเมนูผู้ใช้"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-transparent text-gray-600 transition hover:bg-gray-100 lg:hidden dark:text-gray-300 dark:hover:bg-gray-800"
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fillRule="evenodd"
+              clipRule="evenodd"
+              d="M5.99902 10.4951C6.82745 10.4951 7.49902 11.1667 7.49902 11.9951V12.0051C7.49902 12.8335 6.82745 13.5051 5.99902 13.5051C5.1706 13.5051 4.49902 12.8335 4.49902 12.0051V11.9951C4.49902 11.1667 5.1706 10.4951 5.99902 10.4951ZM17.999 10.4951C18.8275 10.4951 19.499 11.1667 19.499 11.9951V12.0051C19.499 12.8335 18.8275 13.5051 17.999 13.5051C17.1706 13.5051 16.499 12.8335 16.499 12.0051V11.9951C16.499 11.1667 17.1706 10.4951 17.999 10.4951ZM13.499 11.9951C13.499 11.1667 12.8275 10.4951 11.999 10.4951C11.1706 10.4951 10.499 11.1667 10.499 11.9951V12.0051C10.499 12.8335 11.1706 13.5051 11.999 13.5051C12.8275 13.5051 13.499 12.8335 13.499 12.0051V11.9951Z"
+              fill="currentColor"
+            />
+          </svg>
+        </button>
+      </div>
+
+      {/* =====================================================
+        MOBILE USER MENU
+    ===================================================== */}
+      <div
+        className={`overflow-hidden border-t border-gray-100 bg-white transition-all duration-200 lg:hidden dark:border-gray-800 dark:bg-gray-900 ${
+          isApplicationMenuOpen
+            ? 'max-h-32 opacity-100'
+            : 'max-h-0 border-t-0 opacity-0'
+        }`}
+      >
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
+          <ThemeToggleButton />
+
           <UserDropdown />
         </div>
       </div>

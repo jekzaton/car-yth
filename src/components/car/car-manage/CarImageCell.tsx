@@ -1,22 +1,50 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
-type CarImageCellProps = {
-  src?: unknown;
-  alt: string;
-};
+interface CarImageCellProps {
+  src: string;
+  alt?: string;
+  className?: string;
+  width?: number;
+  height?: number;
+  priority?: boolean;
+}
+
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
+const FALLBACK_IMAGE = '/images/no-image.png';
+
+function withBasePath(path: string): string {
+  if (
+    path.startsWith('http://') ||
+    path.startsWith('https://') ||
+    path.startsWith('blob:') ||
+    path.startsWith('data:')
+  ) {
+    return path;
+  }
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  if (BASE_PATH && normalizedPath.startsWith(`${BASE_PATH}/`)) {
+    return normalizedPath;
+  }
+
+  return `${BASE_PATH}${normalizedPath}`;
+}
 
 function normalizeImagePath(src: string): string {
   const value = src.trim();
 
-  if (!value) return '/images/no-image.png';
+  if (!value) return FALLBACK_IMAGE;
 
   if (
     value.startsWith('http://') ||
     value.startsWith('https://') ||
-    value.startsWith('blob:')
+    value.startsWith('blob:') ||
+    value.startsWith('data:')
   ) {
     return value;
   }
@@ -33,7 +61,7 @@ function normalizeImagePath(src: string): string {
 }
 
 function getCoverImage(src: unknown): string {
-  if (!src) return '/images/no-image.png';
+  if (!src) return FALLBACK_IMAGE;
 
   if (Array.isArray(src)) {
     const firstImage = src.find(
@@ -41,16 +69,16 @@ function getCoverImage(src: unknown): string {
         typeof image === 'string' && image.trim() !== '',
     );
 
-    return firstImage ? normalizeImagePath(firstImage) : '/images/no-image.png';
+    return firstImage ? normalizeImagePath(firstImage) : FALLBACK_IMAGE;
   }
 
   if (typeof src !== 'string') {
-    return '/images/no-image.png';
+    return FALLBACK_IMAGE;
   }
 
   const value = src.trim();
 
-  if (!value) return '/images/no-image.png';
+  if (!value) return FALLBACK_IMAGE;
 
   try {
     const parsed: unknown = JSON.parse(value);
@@ -61,9 +89,7 @@ function getCoverImage(src: unknown): string {
           typeof image === 'string' && image.trim() !== '',
       );
 
-      return firstImage
-        ? normalizeImagePath(firstImage)
-        : '/images/no-image.png';
+      return firstImage ? normalizeImagePath(firstImage) : FALLBACK_IMAGE;
     }
 
     if (parsed && typeof parsed === 'object' && 'images' in parsed) {
@@ -75,47 +101,55 @@ function getCoverImage(src: unknown): string {
             typeof image === 'string' && image.trim() !== '',
         );
 
-        return firstImage
-          ? normalizeImagePath(firstImage)
-          : '/images/no-image.png';
+        return firstImage ? normalizeImagePath(firstImage) : FALLBACK_IMAGE;
       }
     }
   } catch {
     return normalizeImagePath(value);
   }
 
-  return '/images/no-image.png';
+  return FALLBACK_IMAGE;
 }
 
-export default function CarImageCell({ src, alt }: CarImageCellProps) {
+export default function CarImageCell({
+  src,
+  alt = 'รูปภาพรถ',
+  className = '',
+  width = 80,
+  height = 80,
+  priority = false,
+}: CarImageCellProps) {
   const coverImage = useMemo(() => getCoverImage(src), [src]);
-  const [hasError, setHasError] = useState(false);
 
-  useEffect(() => {
-    setHasError(false);
-  }, [coverImage]);
+  const normalizedSrc = withBasePath(coverImage);
+  const fallbackSrc = withBasePath(FALLBACK_IMAGE);
 
-  const imageSrc = hasError ? '/images/no-image.png' : coverImage;
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
-  // console.log('CarImageCell:', {
-  //   originalSrc: src,
-  //   coverImage,
-  //   imageSrc,
-  // });
+  const imageSrc = failedSrc === normalizedSrc ? fallbackSrc : normalizedSrc;
 
   return (
-    <div className="dark:border-white/8 relative h-14 w-20 shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-gray-100 shadow-sm dark:bg-white/5">
+    <div
+      className={`relative shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-gray-100 shadow-sm dark:border-white/10 dark:bg-white/5 ${className}`}
+      style={{
+        width,
+        height,
+      }}
+    >
       <Image
         key={imageSrc}
         src={imageSrc}
-        alt={alt || 'car image'}
+        alt={alt}
         fill
         unoptimized
-        sizes="80px"
-        className="object-contain transition duration-300 hover:scale-105"
+        priority={priority}
+        sizes={`${width}px`}
+        className="object-cover transition-transform duration-300 hover:scale-105"
         onError={() => {
-          console.error('โหลดรูปไม่ได้:', imageSrc);
-          setHasError(true);
+          if (imageSrc !== fallbackSrc) {
+            console.error('โหลดรูปไม่ได้:', imageSrc);
+            setFailedSrc(normalizedSrc);
+          }
         }}
       />
     </div>

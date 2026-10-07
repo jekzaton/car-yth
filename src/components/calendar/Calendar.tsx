@@ -105,34 +105,21 @@ export default function Calendar() {
     const groups = new Map<
       string,
       {
-        date: string;
-
+        startDate: string;
+        endDate: string;
         typeCarId: number;
-
         typeName: string;
-
         bookings: BookingCalendarItem[];
       }
     >();
 
     bookings.forEach((booking) => {
-      const date = getCalendarDate(booking.startDate);
+      const startDate = getCalendarDate(booking.startDate);
 
-      // console.log('BOOKING DATE:', {
-      //   bookingId: booking.bookingId,
+      const endDate = getCalendarDate(booking.endDate) || startDate;
 
-      //   raw: booking.startDate,
-
-      //   parsed: date,
-
-      //   typeCarId: booking.typeCarId,
-
-      //   typeName: booking.typeName,
-      // });
-
-      if (!date) {
+      if (!startDate) {
         console.warn('Invalid booking date:', booking);
-
         return;
       }
 
@@ -141,37 +128,57 @@ export default function Calendar() {
       const typeName = booking.typeName?.trim() || 'ไม่ระบุประเภทรถ';
 
       /*
-       * วันที่เดียวกัน + ประเภทเดียวกัน
-       * จะรวมเป็น event เดียว
+       * รวมเฉพาะรายการที่
+       * - ประเภทรถเดียวกัน
+       * - วันเริ่มเดียวกัน
+       * - วันสิ้นสุดเดียวกัน
+       *
+       * ตัวอย่าง:
+       * รถวิชาการ 2 คัน
+       * จอง 8 - 9 เหมือนกัน
+       * => แสดงเป็นแถบเดียว "วิชาการ 2 คัน"
        */
-      const key = `${date}-${typeCarId}`;
+      const key = `${startDate}-${endDate}-${typeCarId}`;
 
       const existing = groups.get(key);
 
       if (existing) {
         existing.bookings.push(booking);
-
         return;
       }
 
       groups.set(key, {
-        date,
-
+        startDate,
+        endDate,
         typeCarId,
-
         typeName,
-
         bookings: [booking],
       });
     });
 
-    const result: CalendarEvent[] = Array.from(groups.values()).map((group) => {
+    return Array.from(groups.values()).map((group) => {
+      /*
+       * FullCalendar end date เป็น exclusive
+       *
+       * จอง:
+       * 8 - 9
+       *
+       * ต้องส่ง:
+       * start = 8
+       * end   = 10
+       *
+       * ถึงจะแสดงครอบ 8 และ 9
+       */
+      const calendarEnd = addDays(group.endDate, 1);
+
       return {
-        id: `${group.date}-${group.typeCarId}`,
+        id: `${group.startDate}-${group.endDate}-${group.typeCarId}`,
 
         title: `${group.typeName} ${group.bookings.length} คัน`,
 
-        start: group.date,
+        start: group.startDate,
+
+        end: calendarEnd,
 
         allDay: true,
 
@@ -188,10 +195,6 @@ export default function Calendar() {
         },
       };
     });
-
-    // console.log('FULL CALENDAR EVENTS:', result);
-
-    return result;
   }, [bookings]);
 
   const handleEventClick = (info: EventClickArg) => {
@@ -247,14 +250,14 @@ export default function Calendar() {
 
   return (
     <>
-      <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         {/* HEADER */}
 
         <CalendarHeader bookings={visibleBookings} />
 
         {/* CALENDAR */}
 
-        <div className="w-full p-4 md:p-6">
+        <div className="w-full p-3 sm:p-4 lg:p-5">
           {loading ? (
             <CalendarLoading />
           ) : (
@@ -266,13 +269,15 @@ export default function Calendar() {
                 firstDay={0}
                 height="auto"
                 contentHeight="auto"
+                fixedWeekCount={false}
+                showNonCurrentDates
+                dayMaxEvents={3}
                 events={events}
                 datesSet={handleDatesSet}
                 eventDisplay="block"
                 displayEventTime={false}
                 eventClick={handleEventClick}
                 eventContent={renderEventContent}
-                dayMaxEvents={true}
                 nowIndicator
                 headerToolbar={{
                   left: 'prev,next today',
@@ -483,18 +488,20 @@ function renderEventContent(eventInfo: EventContentArg) {
 
   return (
     <div
-      className={`w-full min-w-0 cursor-pointer overflow-hidden rounded-md border px-1.5 py-1 sm:rounded-lg sm:px-2 sm:py-1.5 ${props.typeColor} `}
+      className={`group w-full min-w-0 cursor-pointer overflow-hidden rounded-lg border px-2 py-1.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${props.typeColor}`}
     >
-      <div className="flex min-w-0 items-center gap-1">
-        <CarFront className="hidden h-3.5 w-3.5 shrink-0 sm:block" />
+      <div className="flex min-w-0 items-center gap-1.5">
+        <div className="hidden h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white/60 sm:flex dark:bg-black/10">
+          <CarFront className="h-3 w-3" />
+        </div>
 
-        <span className="min-w-0 flex-1 truncate text-[9px] font-bold sm:text-[11px]">
+        <span className="min-w-0 flex-1 truncate text-[10px] font-bold sm:text-xs">
           {props.typeName}
         </span>
 
-        <span className="shrink-0 text-[9px] font-bold sm:text-[11px]">
+        <span className="flex shrink-0 items-center justify-center rounded-md bg-white/60 px-1.5 py-0.5 text-[9px] font-bold sm:text-[10px] dark:bg-black/10">
           {props.count}
-          <span className="hidden sm:inline"> คัน</span>
+          <span className="ml-0.5 hidden lg:inline">คัน</span>
         </span>
       </div>
     </div>
@@ -691,6 +698,21 @@ function DetailCard({
   );
 }
 
+function addDays(dateString: string, days: number): string {
+  const [year, month, day] = dateString.split('-').map(Number);
+
+  const date = new Date(year, month - 1, day);
+
+  date.setDate(date.getDate() + days);
+
+  const newYear = date.getFullYear();
+
+  const newMonth = String(date.getMonth() + 1).padStart(2, '0');
+
+  const newDay = String(date.getDate()).padStart(2, '0');
+
+  return `${newYear}-${newMonth}-${newDay}`;
+}
 //  DATE FOR FULLCALENDAR
 
 function getCalendarDate(value: unknown): string {

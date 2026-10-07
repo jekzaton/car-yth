@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     // VALIDATE INPUT
     // =========================================================
 
-    if (!cid || !password) {
+    if (cid.length !== 13 || !password) {
       return NextResponse.json(
         {
           success: false,
@@ -197,7 +197,6 @@ export async function POST(req: Request) {
       statusLevel,
       mustChangePassword,
     });
-
     // =========================================================
     // RESPONSE
     // =========================================================
@@ -225,11 +224,22 @@ export async function POST(req: Request) {
     // COOKIE
     // =========================================================
 
+    const requestUrl = new URL(req.url);
+
+    const forwardedProto = req.headers
+      .get('x-forwarded-proto')
+      ?.split(',')[0]
+      ?.trim()
+      .toLowerCase();
+
+    const isHttps =
+      requestUrl.protocol === 'https:' || forwardedProto === 'https';
+
     response.cookies.set({
       name: 'auth_token',
       value: token,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isHttps,
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24,

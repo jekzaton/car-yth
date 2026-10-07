@@ -3,7 +3,7 @@ export type CarMaintainItem = {
 
   // รถ
   carCode: string;
-  carName: string | null;
+  carBrandSub: string | null;
 
   carBrandId: number | null;
   carBrand: string | null;

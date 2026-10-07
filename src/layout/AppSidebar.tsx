@@ -58,15 +58,6 @@ const navItems: NavItem[] = [
     path: '/bookingCar',
     roles: ['admin', 'member', 'user'],
   },
-
-  // {
-  //   name: 'Pages',
-  //   icon: <PageIcon />,
-  //   subItems: [
-  //     { name: 'Blank Page', path: '/blank', pro: false },
-  //     { name: '404 Error', path: '/error-404', pro: false },
-  //   ],
-  // },
 ];
 
 const othersItems: NavItem[] = [
@@ -80,10 +71,7 @@ const othersItems: NavItem[] = [
   {
     icon: <FilePen />,
     name: 'จัดการจองรถ',
-    subItems: [
-      { name: 'รายการจอง', path: '/cars/carManage', pro: false },
-      { name: 'จัดการคนขับรถ', path: '/users/user-car', pro: false },
-    ],
+    subItems: [{ name: 'รายการจอง', path: '/cars/carManage', pro: false }],
     roles: ['admin', 'member'],
   },
   {
@@ -103,7 +91,7 @@ const othersItems: NavItem[] = [
       { name: 'จัดการสมาชิกทั่วไป', path: '/users', pro: false },
       { name: 'จัดการคนขับรถ', path: '/users/user-car', pro: false },
     ],
-    roles: ['admin', 'member'],
+    roles: ['admin'],
   },
   {
     icon: <Car2Icon className="h-6 w-6" />,
@@ -119,7 +107,7 @@ const othersItems: NavItem[] = [
 ];
 
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { isExpanded, isMobileOpen, isHovered } = useSidebar();
   const pathname = usePathname();
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
@@ -203,19 +191,19 @@ const AppSidebar: React.FC = () => {
     navItems: NavItem[],
     menuType: 'main' | 'others',
   ) => (
-    <ul className="flex flex-col gap-4">
+    <ul className="flex flex-col gap-3">
       {navItems.map((nav, index) => (
         <li key={nav.name}>
           {nav.subItems ? (
             <button
               onClick={() => handleSubmenuToggle(index, menuType)}
-              className={`menu-item group ${
+              className={`menu-item group min-h-11 w-full rounded-xl px-3 py-2.5 ${
                 openSubmenu?.type === menuType && openSubmenu?.index === index
                   ? 'menu-item-active'
                   : 'menu-item-inactive'
               } cursor-pointer ${
                 !isExpanded && !isHovered
-                  ? 'lg:justify-center'
+                  ? 'lg:justify-center lg:px-2'
                   : 'lg:justify-start'
               }`}
             >
@@ -246,8 +234,12 @@ const AppSidebar: React.FC = () => {
             nav.path && (
               <Link
                 href={nav.path}
-                className={`menu-item group ${
+                className={`menu-item group min-h-11 w-full rounded-xl px-3 py-2.5 ${
                   isActive(nav.path) ? 'menu-item-active' : 'menu-item-inactive'
+                } ${
+                  !isExpanded && !isHovered
+                    ? 'lg:justify-center lg:px-2'
+                    : 'justify-start'
                 }`}
               >
                 <span
@@ -391,20 +383,20 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-50 mt-16 flex h-[calc(100vh-4rem)] flex-col border-r border-gray-200 bg-white px-5 text-gray-900 transition-all duration-300 ease-in-out lg:mt-0 lg:h-screen dark:border-gray-800 dark:bg-gray-900 ${
-        isExpanded || isMobileOpen ? 'w-72.5' : isHovered ? 'w-72.5' : 'w-22.5'
-      } ${
-        isMobileOpen ? 'translate-x-0' : '-translate-x-full'
-      } lg:translate-x-0`}
-      onMouseEnter={() => !isExpanded && setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className={`fixed left-0 top-0 z-50 flex h-dvh flex-col border-r border-gray-200 bg-white text-gray-900 shadow-sm transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-gray-900 ${
+        isMobileOpen
+          ? 'w-[min(18rem,calc(100vw-1rem))] translate-x-0'
+          : '-translate-x-full'
+      } lg:translate-x-0 ${
+        isExpanded || isHovered ? '2xl:w-76 lg:w-64 xl:w-72' : 'xl:w-22 lg:w-20'
+      }`}
     >
       {/* ================= LOGO ================= */}
       <div
-        className={`flex shrink-0 py-8 ${
+        className={`flex shrink-0 items-center border-b border-gray-100 py-5 dark:border-gray-800 ${
           isExpanded || isHovered || isMobileOpen
-            ? 'justify-start'
-            : 'w-full justify-center'
+            ? 'justify-start px-5 xl:px-6'
+            : 'justify-center px-2'
         }`}
       >
         <Link
@@ -418,7 +410,7 @@ const AppSidebar: React.FC = () => {
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <Image
-                src="/images/logo/logo.svg"
+                src={`${process.env.NEXT_PUBLIC_BASE_PATH}/images/logo/logo.svg`}
                 alt="Logo"
                 width={150}
                 height={40}
@@ -427,7 +419,7 @@ const AppSidebar: React.FC = () => {
               />
 
               <Image
-                src="/images/logo/logo-dark.svg"
+                src={`${process.env.NEXT_PUBLIC_BASE_PATH}/images/logo/logo-dark.svg`}
                 alt="Logo"
                 width={150}
                 height={40}
@@ -437,7 +429,7 @@ const AppSidebar: React.FC = () => {
             </>
           ) : (
             <Image
-              src="/images/logo/logo-icon1.svg"
+              src={`${process.env.NEXT_PUBLIC_BASE_PATH}/images/logo/logo-icon1.svg`}
               alt="Logo"
               width={32}
               height={32}
@@ -449,7 +441,11 @@ const AppSidebar: React.FC = () => {
       </div>
 
       {/* ================= SCROLL AREA ================= */}
-      <div className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+      <div
+        className={`sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-4 ${
+          isExpanded || isHovered || isMobileOpen ? 'px-4 xl:px-5' : 'px-2'
+        }`}
+      >
         <nav className="pb-5">
           <div className="flex flex-col gap-4">
             {/* MENU */}
@@ -457,7 +453,7 @@ const AppSidebar: React.FC = () => {
               <h2
                 className={`mb-4 flex text-xs uppercase leading-5 text-gray-400 ${
                   !isExpanded && !isHovered
-                    ? 'lg:justify-center'
+                    ? 'lg:justify-center lg:px-2'
                     : 'justify-start'
                 }`}
               >
@@ -477,7 +473,7 @@ const AppSidebar: React.FC = () => {
                 <h2
                   className={`mb-4 flex text-xs uppercase leading-5 text-gray-400 ${
                     !isExpanded && !isHovered
-                      ? 'lg:justify-center'
+                      ? 'lg:justify-center lg:px-2'
                       : 'justify-start'
                   }`}
                 >
@@ -497,7 +493,7 @@ const AppSidebar: React.FC = () => {
 
       {/* ================= USER WIDGET ================= */}
       {(isExpanded || isHovered || isMobileOpen) && (
-        <div className="shrink-0 border-t border-gray-200 bg-white py-4 dark:border-gray-800 dark:bg-gray-900">
+        <div className="shrink-0 border-t border-gray-100 bg-white px-4 py-3 xl:px-5 dark:border-gray-800 dark:bg-gray-900">
           <SidebarWidget />
         </div>
       )}
