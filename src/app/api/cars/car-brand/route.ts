@@ -355,7 +355,6 @@ export async function DELETE(request: NextRequest) {
       .select({
         id: cars.id,
         carCode: cars.car_code,
-        carBrandSub: cars.car_brand_sub,
       })
       .from(cars)
       .where(eq(cars.car_brand_id, id))

@@ -136,7 +136,6 @@ export async function GET(req: NextRequest, { params }: EditProps) {
       .select({
         id: cars.id,
         carCode: cars.car_code,
-        carBrandSub: cars.car_brand_sub,
 
         carBrandId: cars.car_brand_id,
         carBrand: car_brand.car_brand_name,
@@ -303,7 +302,6 @@ export async function PUT(req: Request, { params }: EditProps) {
       .update(cars)
       .set({
         car_code: carCode,
-        car_brand_sub: carBrandSub,
         car_brand_id: carBrandId,
         license_plate: licensePlate,
         car_image: JSON.stringify(newImageData),

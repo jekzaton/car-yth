@@ -169,7 +169,6 @@ export async function GET(request: Request) {
         id: cars.id,
 
         carCode: cars.car_code,
-        carBrandSub: cars.car_brand_sub,
 
         carBrandId: cars.car_brand_id,
         carBrand: car_brand.car_brand_name,
@@ -295,8 +294,6 @@ export async function GET(request: Request) {
       id: car.id,
 
       carCode: car.carCode,
-
-      carBrandSub: car.carBrandSub,
 
       carBrandId: car.carBrandId,
       carBrand: car.carBrand,
