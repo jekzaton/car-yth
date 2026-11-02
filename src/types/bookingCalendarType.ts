@@ -5,7 +5,7 @@ export type BookingCalendarItem = {
   bookingName: string;
 
   carCode: string;
-  carName?: string | null;
+  carBrandSub?: string | null;
   carBrand?: string | null;
   licensePlate?: string | null;
 
@@ -31,4 +31,7 @@ export type BookingCalendarItem = {
   phone?: string | null;
 
   status: 'approved';
+  depId?: number | null;
+  departmentName?: string | null;
+  departmentPhone?: string | null;
 };

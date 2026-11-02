@@ -50,10 +50,11 @@ export default function UsageTable({
   onEdit,
 }: UsageTableProps) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm dark:border-white/10 dark:bg-gray-900">
-      <div className="overflow-x-auto">
-        <table className="min-w-7xl w-full">
-          <thead>
+    <div className="border-border bg-card flex min-w-0 flex-col overflow-hidden rounded-2xl border shadow-sm">
+      {/* FIX TABLE HEIGHT */}
+      <div className="h-[650px] min-h-0 w-full overflow-auto overscroll-contain sm:h-[680px] xl:h-[720px]">
+        <table className="w-full min-w-[1450px]">
+          <thead className="bg-muted sticky top-0 z-10 shadow-[0_1px_0_var(--color-border)]">
             <tr className="border-b border-gray-100 bg-gray-50/80 text-left dark:border-white/10 dark:bg-white/5">
               <th className="w-16 px-5 py-4 text-xs font-semibold text-gray-500">
                 #
@@ -296,8 +297,9 @@ export default function UsageTable({
       </div>
 
       {/* ================= PAGINATION ================= */}
+      {/* ================= PAGINATION ================= */}
       {!isLoading && totalItems > 0 && (
-        <div className="dark:bg-white/2 flex flex-col gap-4 border-t border-gray-100 bg-gray-50/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
+        <div className="border-border bg-muted/30 flex shrink-0 flex-col gap-4 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-500">แสดง</span>
 

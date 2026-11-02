@@ -9,6 +9,18 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
 
+  // Redirect จาก / ไป /ythcar/signin
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/ythcar/signin',
+        permanent: false,
+        basePath: false,
+      },
+    ];
+  },
+
   webpack(config) {
     config.module.rules.push({
       test: /\.svg$/,

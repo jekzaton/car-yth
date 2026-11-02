@@ -25,7 +25,6 @@ export async function GET(req: NextRequest) {
         // CAR
         // =========================
         carCode: car_oil.car_code,
-        carBrandSub: cars.car_brand_sub,
         carBrand: car_brand.car_brand_name,
         licensePlate: cars.license_plate,
 
@@ -79,7 +78,7 @@ export async function GET(req: NextRequest) {
 
         // CAR
         carCode: item.carCode,
-        carBrandSub: item.carBrandSub ?? null,
+        carBrandSub: null,
         carBrand: item.carBrand ?? null,
         licensePlate: item.licensePlate ?? null,
 
@@ -103,37 +102,10 @@ export async function GET(req: NextRequest) {
       total: data.length,
       data,
     });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: error.message,
-        },
-        {
-          status: error.status,
-        },
-      );
-    }
-    console.error('GET /api/cars/car-oil error:', error);
-
-    return NextResponse.json(
-      {
-        success: false,
-        message: 'ไม่สามารถโหลดข้อมูลการเติมน้ำมันได้',
-        data: [],
-      },
-      {
-        status: 500,
-      },
-    );
+  } catch (error: unknown) {
+    return handleApiError(error, 'GET', 'ไม่สามารถโหลดข้อมูลการเติมน้ำมันได้');
   }
 }
-
-// ============================================================
-// POST
-// /api/cars/car-oil
-// ============================================================
 
 export async function POST(request: NextRequest) {
   try {
@@ -342,19 +314,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ========================================================
-    // INSERT
-    // ========================================================
-
     const result = await db.insert(car_oil).values({
       car_code: carCode,
       c_u_code: driverCode,
       date_oil: parsedDateOil,
-
       km_detail: kmDetail,
       liter_oil: literOil,
       price_oil: priceOil,
-
       oil_type: oilTypeId,
     });
 
@@ -371,28 +337,11 @@ export async function POST(request: NextRequest) {
         status: 201,
       },
     );
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: error.message,
-        },
-        {
-          status: error.status,
-        },
-      );
-    }
-    console.error('POST /api/cars/car-oil error:', error);
-
-    return NextResponse.json(
-      {
-        success: false,
-        message: 'ไม่สามารถเพิ่มข้อมูลการเติมน้ำมันได้',
-      },
-      {
-        status: 500,
-      },
+  } catch (error: unknown) {
+    return handleApiError(
+      error,
+      'POST',
+      'ไม่สามารถเพิ่มข้อมูลการเติมน้ำมันได้',
     );
   }
 }
@@ -437,13 +386,6 @@ function getInteger(value: unknown): number | null {
   return number;
 }
 
-/**
- * รองรับ:
- * 2026-09-15T09:30
- * 2026-09-15T09:30:00
- * 2026-09-15 09:30
- * 2026-09-15 09:30:00
- */
 function parseDateTime(value: string): Date | null {
   if (!value) {
     return null;
@@ -458,4 +400,48 @@ function parseDateTime(value: string): Date | null {
   }
 
   return date;
+}
+
+function handleApiError(
+  error: unknown,
+  method: 'GET' | 'POST',
+  message: string,
+) {
+  if (error instanceof AuthError) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message,
+      },
+      { status: error.status },
+    );
+  }
+
+  console.error(`${method} /api/cars/car-oil error:`, error);
+
+  const cause = error instanceof Error ? error.cause : undefined;
+
+  const mysqlError =
+    cause && typeof cause === 'object'
+      ? (cause as {
+          code?: string;
+          sqlMessage?: string;
+          message?: string;
+        })
+      : null;
+
+  return NextResponse.json(
+    {
+      success: false,
+      message,
+      ...(process.env.NODE_ENV === 'development'
+        ? {
+            error: error instanceof Error ? error.message : String(error),
+            mysqlCode: mysqlError?.code ?? null,
+            mysqlError: mysqlError?.sqlMessage ?? mysqlError?.message ?? null,
+          }
+        : {}),
+    },
+    { status: 500 },
+  );
 }

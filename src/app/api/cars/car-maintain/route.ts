@@ -111,8 +111,6 @@ export async function GET(request: NextRequest) {
 
         priceMaintain: car_maintain.price_maintain,
 
-        carBrandSub: cars.car_brand_sub,
-
         carBrandId: cars.car_brand_id,
 
         carBrand: car_brand.car_brand_name,
@@ -161,8 +159,6 @@ export async function GET(request: NextRequest) {
         // CAR
 
         carCode: item.carCode,
-
-        carBrandSub: item.carBrandSub ?? null,
 
         carBrandId: item.carBrandId ?? null,
 

@@ -2,7 +2,7 @@
 
 import api from '@/lib/axios';
 import { formatPhone } from '@/utils/formatPhone';
-import axios from 'axios';
+
 import {
   Check,
   ChevronDown,
@@ -22,35 +22,29 @@ type Driver = {
   phone?: string | null;
 };
 
-type DriverSelectProps = {
+interface DriverSelectProps {
   value?: string | null;
-
   bookingId: number;
-
   startDate: string;
   startTime: string;
-
   endDate: string;
   endTime: string;
-
+  driverName?: string | null;
+  driverPhone?: string | null;
   disabled?: boolean;
-
-  onChange: (userCode: string) => void | Promise<void>;
-};
+  onChange: (userCode: string) => Promise<void>;
+}
 
 export default function DriverSelect({
   value,
-
   bookingId,
-
   startDate,
   startTime,
-
   endDate,
   endTime,
-
+  driverName,
+  driverPhone,
   disabled = false,
-
   onChange,
 }: DriverSelectProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -152,11 +146,23 @@ export default function DriverSelect({
     );
   }, [drivers, value]);
 
-  const selectedDriverName = selectedDriver
-    ? [selectedDriver.prefix, selectedDriver.firstName, selectedDriver.lastName]
-        .filter(Boolean)
-        .join(' ')
-    : '';
+  const selectedDriverName = useMemo(() => {
+  if (selectedDriver) {
+    return [
+      selectedDriver.prefix,
+      selectedDriver.firstName,
+      selectedDriver.lastName,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+  }
+
+  return driverName?.trim() || '';
+}, [selectedDriver, driverName]);
+
+const selectedDriverPhone =
+  selectedDriver?.phone || driverPhone || null;
 
   const handleSelect = async (driver: Driver) => {
     try {
@@ -185,64 +191,78 @@ export default function DriverSelect({
     <div ref={containerRef} className="min-w-55 relative">
       {/* SELECT BUTTON */}
 
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={async () => {
-          if (disabled) return;
+<button
+  type="button"
+  disabled={disabled}
+  aria-expanded={isOpen}
+  aria-haspopup="listbox"
+  onClick={() => {
+    if (disabled) return;
 
-          if (isOpen) {
-            setIsOpen(false);
-            return;
-          }
+    if (isOpen) {
+      setIsOpen(false);
+      return;
+    }
 
-          setSearch('');
-          setIsOpen(true);
+    setSearch('');
+    setIsOpen(true);
+    void fetchDrivers();
+  }}
+  className={`flex min-h-14.5 w-full min-w-0 items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left shadow-sm transition-all duration-200
+    ${
+      isOpen
+        ? 'border-blue-400 bg-card ring-2 ring-blue-500/10'
+        : value
+          ? 'border-emerald-500/25 bg-card hover:border-emerald-500/40'
+          : 'border-border bg-card hover:border-blue-400'
+    }
+    disabled:cursor-not-allowed disabled:opacity-60`}
+>
+  {/* AVATAR */}
+  <div
+    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+      value
+        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+        : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+    }`}
+  >
+    <UserRound className="h-4.5 w-4.5" />
+  </div>
 
-          await fetchDrivers();
-        }}
-        className="flex min-h-11 w-full items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-left transition hover:border-blue-300 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:opacity-60 dark:border-white/10 dark:bg-white/5"
-      >
-        <div className="flex min-w-0 items-center gap-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
-            <UserRound className="h-4 w-4" />
-          </div>
+  {/* NAME + DETAILS */}
+  <div className="min-w-0 flex-1">
+    <p
+      className={`truncate text-[12px] font-semibold ${
+        value
+          ? 'text-foreground'
+          : 'text-muted-foreground'
+      }`}
+      title={selectedDriverName}
+    >
+      {value
+        ? selectedDriverName || `รหัสผู้ขับ ${value}`
+        : 'เลือกพนักงานขับรถ'}
+    </p>
 
-          <div className="min-w-0 flex-1">
-            {selectedDriver ? (
-              <>
-                <p className="truncate text-xs font-semibold text-gray-800 dark:text-gray-200">
-                  {selectedDriverName}
-                </p>
+    <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+      {value
+        ? `รหัส ${value}${
+            selectedDriverPhone
+              ? ` · ${formatPhone(selectedDriverPhone)}`
+              : ''
+          }`
+        : 'คลิกเพื่อเลือกคนขับ'}
+    </p>
+  </div>
 
-                <div className="mt-0.5 space-y-0.5 text-[10px] text-gray-400">
-                  <p>รหัสผู้ขับ : {selectedDriver.userCode}</p>
+  {/* DROPDOWN ICON */}
+  <ChevronDown
+    className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
+      isOpen ? 'rotate-180' : ''
+    }`}
+  />
+</button>
 
-                  <p>โทร : {formatPhone(selectedDriver.phone)}</p>
-                </div>
-              </>
-            ) : value ? (
-              <>
-                <p className="truncate text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  รหัสผู้ขับ {value}
-                </p>
-
-                <p className="mt-0.5 text-[10px] text-gray-400">
-                  กำลังโหลดข้อมูลคนขับ...
-                </p>
-              </>
-            ) : (
-              <p className="text-xs text-gray-400">เลือกคนขับรถ</p>
-            )}
-          </div>
-        </div>
-
-        <ChevronDown
-          className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${
-            isOpen ? 'rotate-180' : ''
-          }`}
-        />
-      </button>
 
       {/* DROPDOWN */}
 

@@ -13,11 +13,6 @@ export const cars = mysqlTable('cars', {
     length: 255,
   }).notNull(),
 
-  // รุ่นย่อยของรถ
-  car_brand_sub: varchar('car_brand_sub', {
-    length: 255,
-  }).notNull(),
-
   license_plate: varchar('license_plate', {
     length: 100,
   }).notNull(),

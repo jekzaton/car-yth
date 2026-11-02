@@ -118,11 +118,9 @@ export default function CarManageTable({
                   <td className="px-6 py-4">
                     <CarImageCell
                       key={`${car.id}-${mainImage ?? 'no-image'}`}
-                      src={
-                        mainImage
-                          ? `${process.env.NEXT_PUBLIC_BASE_PATH || ''}${mainImage}`
-                          : ''
-                      }
+                      src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}${
+                        mainImage || '/images/no-image.png'
+                      }`}
                       alt={
                         `${car.carBrand || ''} ${car.carBrandSub || ''}`.trim() ||
                         'รูปรถยนต์'

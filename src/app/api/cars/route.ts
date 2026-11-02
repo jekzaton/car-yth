@@ -19,14 +19,9 @@ export async function GET() {
     const carsList = await db
       .select({
         id: cars.id,
-
         carCode: cars.car_code,
-
         carBrandId: cars.car_brand_id,
         carBrand: car_brand.car_brand_name,
-
-        carBrandSub: cars.car_brand_sub,
-
         licensePlate: cars.license_plate,
         carImage: cars.car_image,
         status: cars.status,
@@ -37,7 +32,10 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       total: carsList.length,
-      data: carsList,
+      data: carsList.map((car) => ({
+        ...car,
+        carBrandSub: null,
+      })),
     });
   } catch (error) {
     console.error('GET /api/cars error:', error);
@@ -66,13 +64,7 @@ export async function POST(req: Request) {
 
     const formData = await req.formData();
 
-    // ========================================================
-    // FORM DATA
-    // ========================================================
-
     const carCode = String(formData.get('carCode') ?? '').trim();
-
-    const carBrandSub = String(formData.get('carBrandSub') ?? '').trim();
 
     const licensePlate = String(formData.get('licensePlate') ?? '').trim();
 
@@ -102,18 +94,6 @@ export async function POST(req: Request) {
         {
           success: false,
           message: 'กรุณาระบุรหัสรถ',
-        },
-        {
-          status: 400,
-        },
-      );
-    }
-
-    if (!carBrandSub) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'กรุณาระบุรุ่นรถ',
         },
         {
           status: 400,
@@ -275,22 +255,11 @@ export async function POST(req: Request) {
           }
         : null;
 
-    // ========================================================
-    // INSERT
-    // ========================================================
-
     const insertResult = await db.insert(cars).values({
       car_code: carCode,
-
-      car_brand_sub: carBrandSub,
-
-      // สำคัญ
       car_brand_id: carBrandId,
-
       license_plate: licensePlate,
-
       car_image: carImages ? JSON.stringify(carImages) : null,
-
       status,
     });
 
@@ -306,7 +275,6 @@ export async function POST(req: Request) {
           carCode,
           carBrandId,
           carBrand: brandResult[0].name,
-          carBrandSub,
 
           licensePlate,
 

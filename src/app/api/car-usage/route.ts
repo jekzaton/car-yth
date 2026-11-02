@@ -50,10 +50,7 @@ export async function GET() {
         userLastName: booker.last_name,
 
         // รถ
-        carBrandSub: cars.car_brand_sub,
-
         carBrandId: cars.car_brand_id,
-
         carBrand: car_brand.car_brand_name,
 
         licensePlate: cars.license_plate,
@@ -118,7 +115,7 @@ export async function GET() {
 
         // รถ
         carCode: item.carCode,
-        carBrandSub: item.carBrandSub,
+        carBrandSub: null,
         carBrandId: item.carBrandId,
         carBrand: item.carBrand,
         licensePlate: item.licensePlate,
