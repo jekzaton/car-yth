@@ -13,6 +13,10 @@ export const cars = mysqlTable('cars', {
     length: 255,
   }).notNull(),
 
+  car_brand: varchar('car_brand', {
+    length: 255,
+  }).notNull(),
+
   license_plate: varchar('license_plate', {
     length: 100,
   }).notNull(),
@@ -23,6 +27,5 @@ export const cars = mysqlTable('cars', {
     .default('active')
     .notNull(),
 
-  // เก็บ ID ยี่ห้อรถอย่างเดียว ไม่มี FK
   car_brand_id: int('car_brand_id').notNull(),
 });
