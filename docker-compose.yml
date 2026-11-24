@@ -22,6 +22,7 @@ services:
       TZ: Asia/Bangkok
 
     volumes:
-      - ./uploads/cars:/app/public/images/cars
+      # ใช้โฟลเดอร์ public/images/cars ของโปรเจกต์โดยตรง ไม่ต้องสร้าง uploads แยก
+      - ./public/images/cars:/app/public/images/cars
 
     restart: unless-stopped

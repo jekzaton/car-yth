@@ -61,9 +61,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
-# เพิ่มส่วนนี้: สร้างโฟลเดอร์และกำหนดสิทธิ์ให้ user nextjs เขียนไฟล์ได้แน่นอน
-RUN mkdir -p /app/public/images/cars \
-    && chown -R nextjs:nodejs /app/public/images/cars
+# กำหนดสิทธิ์ให้ user nextjs เขียนไฟล์ลงโฟลเดอร์รูปภาพได้แน่นอน
+RUN mkdir -p /app/public/images/cars /app/public/images/user \
+    && chown -R nextjs:nodejs /app/public/images \
+    && chmod -R 775 /app/public/images
 
 USER nextjs
 
