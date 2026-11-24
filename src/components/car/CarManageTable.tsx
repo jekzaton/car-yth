@@ -102,8 +102,6 @@ export default function CarManageTable({
 
           {!isLoading &&
             data.map((car, index) => {
-              const mainImage = getMainCarImage(car.carImage);
-
               return (
                 <tr
                   key={car.id}
@@ -117,10 +115,8 @@ export default function CarManageTable({
                   {/* IMAGE */}
                   <td className="px-6 py-4">
                     <CarImageCell
-                      key={`${car.id}-${mainImage ?? 'no-image'}`}
-                      src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}${
-                        mainImage || '/images/no-image.png'
-                      }`}
+                      key={`${car.id}-${car.carImage ?? 'no-image'}`}
+                      src={car.carImage}
                       alt={
                         `${car.carBrand || ''} ${car.carBrandSub || ''}`.trim() ||
                         'รูปรถยนต์'
@@ -190,45 +186,4 @@ export default function CarManageTable({
       </table>
     </div>
   );
-}
-
-// ======================================================
-// GET MAIN CAR IMAGE
-// ======================================================
-
-function getMainCarImage(carImage?: string | null): string | null {
-  if (!carImage) return null;
-
-  try {
-    const parsed: unknown = JSON.parse(carImage);
-
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      const data = parsed as {
-        main?: unknown;
-        images?: unknown;
-      };
-
-      if (typeof data.main === 'string' && data.main.trim()) {
-        return data.main;
-      }
-
-      if (Array.isArray(data.images) && typeof data.images[0] === 'string') {
-        return data.images[0];
-      }
-    }
-
-    if (Array.isArray(parsed) && typeof parsed[0] === 'string') {
-      return parsed[0];
-    }
-  } catch {
-    if (
-      carImage.startsWith('/') ||
-      carImage.startsWith('http://') ||
-      carImage.startsWith('https://')
-    ) {
-      return carImage;
-    }
-  }
-
-  return null;
 }

@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Upload, Save, ArrowLeft, Star } from 'lucide-react';
 import api from '@/lib/axios';
 import Image from 'next/image';
+import { getImageUrl } from '@/lib/image';
 
 type CarStatus = 'active' | 'inactive';
 
@@ -74,9 +75,11 @@ export default function EditCar() {
 
         setForm({
           carCode: data.carCode ?? '',
-          carBrandSub: data.carBrandSub ?? '',
-          carBrandId: String(data.carBrandId ?? ''),
-          licensePlate: data.licensePlate ?? '',
+          // ดึงค่าจาก carBrandSub หรือ car_brand / carBrand มาแสดงในช่อง รุ่นรถ / รุ่นย่อย
+          carBrandSub:
+            data.carBrandSub ?? data.car_brand ?? data.carBrand ?? '',
+          carBrandId: String(data.carBrandId ?? data.car_brand_id ?? ''),
+          licensePlate: data.licensePlate ?? data.license_plate ?? '',
           status: data.status ?? 'active',
           carImage: images,
         });
@@ -255,25 +258,6 @@ export default function EditCar() {
     return <div className="p-10 text-center text-gray-500">Loading...</div>;
   }
 
-  const getImageSrc = (src: string) => {
-    if (
-      src.startsWith('http://') ||
-      src.startsWith('https://') ||
-      src.startsWith('blob:') ||
-      src.startsWith('data:')
-    ) {
-      return src;
-    }
-
-    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-
-    if (basePath && src.startsWith(`${basePath}/`)) {
-      return src;
-    }
-
-    return `${basePath}${src.startsWith('/') ? src : `/${src}`}`;
-  };
-
   return (
     <div className="space-y-6">
       {/* HEADER */}
@@ -300,7 +284,6 @@ export default function EditCar() {
 
       {/* FORM CARD */}
       <div className="rounded-2xl border border-white/10 bg-white p-6 shadow-sm dark:bg-white/5">
-        {/* <div className="grid grid-cols-1 gap-4 md:grid-cols-2"> */}
         <div className="mt-6 space-y-6">
           {/* ================= BASIC INFO ================= */}
           <div className="dark:bg-white/3 rounded-2xl border border-gray-200 bg-gray-50/60 p-5 dark:border-white/10">
@@ -568,7 +551,7 @@ export default function EditCar() {
                       aria-label={`เลือกรูปที่ ${i + 1} เป็นรูปหลัก`}
                     >
                       <Image
-                        src={getImageSrc(img.url)}
+                        src={getImageUrl(img.url)}
                         alt={`รูปรถยนต์ ${i + 1}`}
                         fill
                         unoptimized

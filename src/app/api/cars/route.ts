@@ -318,7 +318,9 @@ export async function POST(req: Request) {
 
       uploadedFilePaths.push(filePath);
 
-      uploadedPaths.push(`/images/cars/${fileName}`);
+      // แก้จาก `/images/cars/${fileName}` เป็นแบบผ่าน API Route
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/ythcar';
+      uploadedPaths.push(`${basePath}/api/cars/image/${fileName}`);
     }
 
     // ========================================================

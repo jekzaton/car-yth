@@ -196,7 +196,7 @@ export default function TableCar() {
               onChange={(e) => setRowsPerPage(Number(e.target.value))}
               className="relative appearance-none rounded-lg border border-gray-200 bg-white/80 px-4 py-2 pr-8 text-sm font-medium text-gray-700 shadow-sm backdrop-blur transition hover:border-blue-300 hover:shadow-md focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:border-white/10 dark:bg-white/5 dark:text-white/90"
             >
-              {[5, 10, 20, 50].map((n) => (
+              {[5, 10, 20, 50, 100].map((n) => (
                 <option key={n} value={n}>
                   {n}
                 </option>

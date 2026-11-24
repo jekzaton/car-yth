@@ -70,7 +70,9 @@ export async function POST(req: Request) {
         })
         .toFile(filePath);
 
-      uploaded.push(`/images/cars/${fileName}`);
+      // แก้บรรทัดนี้: ชี้ผ่าน API Route พร้อม basePath
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/ythcar';
+      uploaded.push(`${basePath}/api/cars/image/${fileName}`);
     }
 
     return NextResponse.json(

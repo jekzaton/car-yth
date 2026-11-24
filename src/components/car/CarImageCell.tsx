@@ -1,39 +1,16 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { getImageUrl } from '@/lib/image';
 
 type CarImageCellProps = {
   src?: unknown;
   alt: string;
 };
 
-function normalizeImagePath(src: string): string {
-  const value = src.trim();
-
-  if (!value) return '/images/no-image.png';
-
-  if (
-    value.startsWith('http://') ||
-    value.startsWith('https://') ||
-    value.startsWith('blob:')
-  ) {
-    return value;
-  }
-
-  if (value.startsWith('public/')) {
-    return value.replace(/^public/, '');
-  }
-
-  if (value.startsWith('/')) {
-    return value;
-  }
-
-  return `/${value}`;
-}
-
 function getCoverImage(src: unknown): string {
-  if (!src) return '/images/no-image.png';
+  if (!src) return getImageUrl(null);
 
   if (Array.isArray(src)) {
     const firstImage = src.find(
@@ -41,16 +18,16 @@ function getCoverImage(src: unknown): string {
         typeof image === 'string' && image.trim() !== '',
     );
 
-    return firstImage ? normalizeImagePath(firstImage) : '/images/no-image.png';
+    return getImageUrl(firstImage);
   }
 
   if (typeof src !== 'string') {
-    return '/images/no-image.png';
+    return getImageUrl(null);
   }
 
   const value = src.trim();
 
-  if (!value) return '/images/no-image.png';
+  if (!value) return getImageUrl(null);
 
   try {
     const parsed: unknown = JSON.parse(value);
@@ -61,47 +38,39 @@ function getCoverImage(src: unknown): string {
           typeof image === 'string' && image.trim() !== '',
       );
 
-      return firstImage
-        ? normalizeImagePath(firstImage)
-        : '/images/no-image.png';
+      return getImageUrl(firstImage);
     }
 
-    if (parsed && typeof parsed === 'object' && 'images' in parsed) {
-      const images = (parsed as { images?: unknown }).images;
+    if (parsed && typeof parsed === 'object') {
+      const obj = parsed as { main?: unknown; images?: unknown };
 
-      if (Array.isArray(images)) {
-        const firstImage = images.find(
+      if (typeof obj.main === 'string' && obj.main.trim() !== '') {
+        return getImageUrl(obj.main);
+      }
+
+      if (Array.isArray(obj.images)) {
+        const firstImage = obj.images.find(
           (image): image is string =>
             typeof image === 'string' && image.trim() !== '',
         );
 
-        return firstImage
-          ? normalizeImagePath(firstImage)
-          : '/images/no-image.png';
+        return getImageUrl(firstImage);
       }
     }
   } catch {
-    return normalizeImagePath(value);
+    return getImageUrl(value);
   }
 
-  return '/images/no-image.png';
+  return getImageUrl(null);
 }
 
 export default function CarImageCell({ src, alt }: CarImageCellProps) {
   const coverImage = useMemo(() => getCoverImage(src), [src]);
-  const [hasError, setHasError] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
-  useEffect(() => {
-    setHasError(false);
-  }, [coverImage]);
-
-  const imageSrc = hasError ? '/images/no-image.png' : coverImage;
-
-  // console.log('CarImageCell:', {
-  //   originalSrc: src,
-  //   coverImage,
-  //   imageSrc,
-  // });
+  const fallbackImage = getImageUrl(null);
+  const hasError = failedSrc === coverImage;
+  const imageSrc = hasError ? fallbackImage : coverImage;
 
   return (
     <div className="dark:border-white/8 relative h-14 w-20 shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-gray-100 shadow-sm dark:bg-white/5">
@@ -114,8 +83,10 @@ export default function CarImageCell({ src, alt }: CarImageCellProps) {
         sizes="80px"
         className="object-contain transition duration-300 hover:scale-105"
         onError={() => {
-          console.error('โหลดรูปไม่ได้:', imageSrc);
-          setHasError(true);
+          if (!hasError) {
+            console.error('โหลดรูปไม่ได้:', imageSrc);
+            setFailedSrc(coverImage);
+          }
         }}
       />
     </div>

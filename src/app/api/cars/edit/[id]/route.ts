@@ -137,6 +137,9 @@ export async function GET(req: NextRequest, { params }: EditProps) {
         id: cars.id,
         carCode: cars.car_code,
 
+        // เพิ่มบรรทัดนี้: ดึงรุ่นรถ / รุ่นย่อย (คอลัมน์ car_brand ในตาราง cars)
+        carBrandSub: cars.car_brand,
+
         carBrandId: cars.car_brand_id,
         carBrand: car_brand.car_brand_name,
 
@@ -191,6 +194,7 @@ export async function GET(req: NextRequest, { params }: EditProps) {
     );
   }
 }
+
 // ================= UPDATE CAR =================
 export async function PUT(req: Request, { params }: EditProps) {
   try {
@@ -254,9 +258,6 @@ export async function PUT(req: Request, { params }: EditProps) {
     const oldImageData = parseCarImages(oldCar[0].car_image);
     const newImageData = parseCarImages(carImage);
 
-    // console.log('oldImageData:', oldImageData);
-    // console.log('newImageData:', newImageData);
-
     const duplicate = await db
       .select()
       .from(cars)
@@ -302,6 +303,8 @@ export async function PUT(req: Request, { params }: EditProps) {
       .update(cars)
       .set({
         car_code: carCode,
+        // เพิ่มบรรทัดนี้: บันทึกรุ่นรถ / รุ่นย่อย ลงคอลัมน์ car_brand
+        car_brand: carBrandSub,
         car_brand_id: carBrandId,
         license_plate: licensePlate,
         car_image: JSON.stringify(newImageData),
@@ -313,14 +316,19 @@ export async function PUT(req: Request, { params }: EditProps) {
       (image) => !newImageData.images.includes(image),
     );
 
+    const carsImageDir = path.join(process.cwd(), 'public', 'images', 'cars');
+
     for (const image of removedImages) {
-      // ลบเฉพาะรูปที่อยู่ในโฟลเดอร์ cars ป้องกัน path traversal
-      if (!image.startsWith('/images/cars/')) {
+      // รองรับทั้งรูปแบบเก่า (/images/cars/xxx.webp) และรูปแบบใหม่ (/ythcar/api/cars/image/xxx.webp)
+      const isCarImagePath =
+        image.startsWith('/images/cars/') || image.includes('/api/cars/image/');
+
+      if (!isCarImagePath) {
         continue;
       }
 
-      const relativePath = image.replace(/^\/+/, '');
-      const filePath = path.join(process.cwd(), 'public', relativePath);
+      const filename = path.basename(image);
+      const filePath = path.join(carsImageDir, filename);
 
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
