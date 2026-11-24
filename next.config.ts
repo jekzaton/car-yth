@@ -9,7 +9,6 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
 
-  // Redirect จาก / ไป /ythcar/signin
   async redirects() {
     return [
       {

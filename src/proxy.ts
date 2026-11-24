@@ -1,11 +1,5 @@
-// src/proxy.ts
-
 import { jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
-
-// ============================================================
-// TYPES
-// ============================================================
 
 type StatusLevel = 'user' | 'member' | 'admin';
 
@@ -16,25 +10,21 @@ interface AuthTokenPayload {
   mustChangePassword: boolean;
 }
 
-// ============================================================
-// ROUTES
-// ============================================================
+const BASE_PATH = '/ythcar';
+const SIGNIN_PATH = `${BASE_PATH}/signin`;
 
-const authRoutes = ['/signin', '/signup'];
+const authRoutes = [`${BASE_PATH}/signin`, `${BASE_PATH}/signup`];
 
-// public จริง ๆ
-const publicRoutes = [...authRoutes];
+const CHANGE_PASSWORD_ROUTE = `${BASE_PATH}/change-password`;
 
-const CHANGE_PASSWORD_ROUTE = '/change-password';
+const userAllowedRoutes = [
+  `${BASE_PATH}/bookingCar`,
+  `${BASE_PATH}/calendar`,
+  `${BASE_PATH}/profile`,
+];
 
-const userAllowedRoutes = ['/bookingCar', '/calendar', '/profile'];
-
-const USER_HOME = '/calendar';
-const STAFF_HOME = '/dashboard';
-
-// ============================================================
-// JWT
-// ============================================================
+const USER_HOME = `${BASE_PATH}/calendar`;
+const STAFF_HOME = `${BASE_PATH}/dashboard`;
 
 const secret = process.env.JWT_SECRET;
 
@@ -45,15 +35,13 @@ if (!secret) {
 const secretKey = new TextEncoder().encode(secret);
 
 // ============================================================
-// VERIFY TOKEN
+// VERIFY JWT
 // ============================================================
 
 async function getAuthPayload(
   token?: string,
 ): Promise<AuthTokenPayload | null> {
-  if (!token) {
-    return null;
-  }
+  if (!token) return null;
 
   try {
     const { payload } = await jwtVerify(token, secretKey);
@@ -72,13 +60,6 @@ async function getAuthPayload(
       cid.length !== 13 ||
       !['user', 'member', 'admin'].includes(statusLevel)
     ) {
-      console.error('Invalid auth token payload:', {
-        sub: payload.sub,
-        cid: payload.cid,
-        statusLevel: payload.statusLevel,
-        mustChangePassword: payload.mustChangePassword,
-      });
-
       return null;
     }
 
@@ -88,8 +69,7 @@ async function getAuthPayload(
       statusLevel: statusLevel as StatusLevel,
       mustChangePassword,
     };
-  } catch (error) {
-    console.error('JWT verify failed:', error);
+  } catch {
     return null;
   }
 }
@@ -105,22 +85,33 @@ function matchesRoute(pathname: string, routes: string[]): boolean {
 }
 
 // ============================================================
-// REDIRECT -> SIGNIN
+// HOME BY ROLE
+// ============================================================
+
+function getHome(statusLevel: StatusLevel) {
+  return statusLevel === 'user' ? USER_HOME : STAFF_HOME;
+}
+
+// ============================================================
+// REDIRECT SIGNIN
 // ============================================================
 
 function redirectToSignin(request: NextRequest, deleteCookie = false) {
+  const signinUrl = new URL(SIGNIN_PATH, request.url);
+
   const { pathname, search } = request.nextUrl;
 
-  const signinUrl = new URL('/signin', request.url);
-
-  if (pathname !== '/signin') {
+  if (pathname !== SIGNIN_PATH) {
     signinUrl.searchParams.set('callbackUrl', `${pathname}${search}`);
   }
 
   const response = NextResponse.redirect(signinUrl);
 
   if (deleteCookie) {
-    response.cookies.delete('auth_token');
+    response.cookies.delete({
+      name: 'auth_token',
+      path: BASE_PATH,
+    });
   }
 
   return response;
@@ -133,52 +124,60 @@ function redirectToSignin(request: NextRequest, deleteCookie = false) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const token = request.cookies.get('auth_token')?.value;
+  // ทำงานเฉพาะระบบ car-yth
+  if (pathname !== BASE_PATH && !pathname.startsWith(`${BASE_PATH}/`)) {
+    return NextResponse.next();
+  }
 
+  // อนุญาตไฟล์ Static และรูปภาพ
+  if (
+    pathname.startsWith(`${BASE_PATH}/images/`) ||
+    pathname.startsWith(`${BASE_PATH}/_next/`) ||
+    pathname === `${BASE_PATH}/favicon.ico`
+  ) {
+    return NextResponse.next();
+  }
+
+  const token = request.cookies.get('auth_token')?.value;
   const authUser = await getAuthPayload(token);
 
   const isAuthRoute = matchesRoute(pathname, authRoutes);
-
-  const isPublicRoute = matchesRoute(pathname, publicRoutes);
 
   const isChangePasswordRoute =
     pathname === CHANGE_PASSWORD_ROUTE ||
     pathname.startsWith(`${CHANGE_PASSWORD_ROUTE}/`);
 
   // ==========================================================
-  // 1. COOKIE มี แต่ TOKEN ใช้ไม่ได้
-  // ==========================================================
-
-  if (token && !authUser) {
-    if (isAuthRoute) {
-      const response = NextResponse.next();
-
-      response.cookies.delete('auth_token');
-
-      return response;
-    }
-
-    return redirectToSignin(request, true);
-  }
-
-  // ==========================================================
-  // 2. PUBLIC ROUTE + ยังไม่ได้ LOGIN
-  // ==========================================================
-
-  if (isPublicRoute && !authUser) {
-    return NextResponse.next();
-  }
-
-  // ==========================================================
-  // 3. ยังไม่ได้ LOGIN
+  // 1. ไม่มี SESSION หรือ SESSION หมดอายุ
   // ==========================================================
 
   if (!authUser) {
+    // ลบ Cookie เก่าที่หมดอายุหรือไม่ถูกต้อง
+    if (token) {
+      return redirectToSignin(request, true);
+    }
+
+    // ไม่มี Session แต่เข้า Signin / Signup ได้
+    if (isAuthRoute) {
+      return NextResponse.next();
+    }
+
+    // ทุกหน้าอื่นต้อง Login ก่อน
     return redirectToSignin(request);
   }
 
   // ==========================================================
-  // 4. บังคับเปลี่ยน PASSWORD
+  // 2. มี SESSION แล้ว ห้ามเข้า SIGNIN / SIGNUP
+  // ==========================================================
+
+  if (isAuthRoute) {
+    return NextResponse.redirect(
+      new URL(getHome(authUser.statusLevel), request.url),
+    );
+  }
+
+  // ==========================================================
+  // 3. บังคับเปลี่ยน PASSWORD
   // ==========================================================
 
   if (authUser.mustChangePassword) {
@@ -190,45 +189,35 @@ export async function proxy(request: NextRequest) {
   }
 
   // ==========================================================
-  // 5. เปลี่ยน PASSWORD แล้ว ไม่ให้กลับ /change-password
+  // 4. เปลี่ยน PASSWORD แล้ว
   // ==========================================================
 
   if (isChangePasswordRoute) {
-    const home = authUser.statusLevel === 'user' ? USER_HOME : STAFF_HOME;
-
-    return NextResponse.redirect(new URL(home, request.url));
+    return NextResponse.redirect(
+      new URL(getHome(authUser.statusLevel), request.url),
+    );
   }
 
   // ==========================================================
-  // 6. LOGIN แล้ว แต่เข้า SIGNIN / SIGNUP
+  // 5. UNAUTHORIZED
   // ==========================================================
 
-  if (isAuthRoute) {
-    const home = authUser.statusLevel === 'user' ? USER_HOME : STAFF_HOME;
-
-    return NextResponse.redirect(new URL(home, request.url));
-  }
-
-  // ==========================================================
-  // 7. UNAUTHORIZED
-  // ==========================================================
-
-  if (pathname === '/unauthorized') {
+  if (pathname === `${BASE_PATH}/unauthorized`) {
     return NextResponse.next();
   }
 
   // ==========================================================
-  // 8. ROOT
+  // 6. ROOT
   // ==========================================================
 
-  if (pathname === '/') {
-    const home = authUser.statusLevel === 'user' ? USER_HOME : STAFF_HOME;
-
-    return NextResponse.redirect(new URL(home, request.url));
+  if (pathname === BASE_PATH || pathname === `${BASE_PATH}/`) {
+    return NextResponse.redirect(
+      new URL(getHome(authUser.statusLevel), request.url),
+    );
   }
 
   // ==========================================================
-  // 9. ADMIN / MEMBER
+  // 7. ADMIN / MEMBER
   // ==========================================================
 
   if (authUser.statusLevel === 'admin' || authUser.statusLevel === 'member') {
@@ -236,7 +225,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // ==========================================================
-  // 10. USER
+  // 8. USER
   // ==========================================================
 
   if (authUser.statusLevel === 'user') {
@@ -244,16 +233,14 @@ export async function proxy(request: NextRequest) {
       return NextResponse.next();
     }
 
-    if (pathname === '/dashboard') {
+    if (pathname === STAFF_HOME) {
       return NextResponse.redirect(new URL(USER_HOME, request.url));
     }
 
-    return NextResponse.redirect(new URL('/unauthorized', request.url));
+    return NextResponse.redirect(
+      new URL(`${BASE_PATH}/unauthorized`, request.url),
+    );
   }
-
-  // ==========================================================
-  // FALLBACK
-  // ==========================================================
 
   return redirectToSignin(request, true);
 }
@@ -263,5 +250,8 @@ export async function proxy(request: NextRequest) {
 // ============================================================
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|images).*)'],
+  matcher: [
+    '/ythcar',
+    '/ythcar/((?!_next/static|_next/image|favicon.ico|images/).*)',
+  ],
 };
